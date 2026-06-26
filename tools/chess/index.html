@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Chess — Play vs Computer | HTML Tools</title>
+  <meta name="description" content="Offline chess against an AI with selectable difficulty. Soothing board themes, chess clock, scoring, sound and fullscreen. Runs entirely in your browser." />
+  <link rel="stylesheet" href="../../assets/style.css" />
+  <!-- Set theme before paint to avoid flash -->
+  <script>
+    (function () {
+      var t = localStorage.getItem("html-tools-theme") ||
+        (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+  <style>
+    /* ---- Board themes (light square / dark square) ---- */
+    .board-wrap{
+      --sq-light:#eeeed2; --sq-dark:#769656;       /* default: green */
+      --hl-move:rgba(255,238,120,.55);
+      --hl-last:rgba(255,238,120,.38);
+      --hl-check:rgba(232,72,72,.85);
+    }
+    .board-wrap[data-board="walnut"]{ --sq-light:#f0d9b5; --sq-dark:#b58863; }
+    .board-wrap[data-board="ocean"] { --sq-light:#dde7f1; --sq-dark:#557aa8; }
+    .board-wrap[data-board="slate"] { --sq-light:#d4dbe2; --sq-dark:#6c7a89; }
+    .board-wrap[data-board="amethyst"]{ --sq-light:#e7ddf2; --sq-dark:#8b6fb3; }
+    .board-wrap[data-board="coral"] { --sq-light:#f5dfd9; --sq-dark:#c97b6b; }
+
+    /* ---- Setup controls ---- */
+    .setup{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; align-items:end; }
+    .setup .field label{ display:block; font-size:.82rem; color:var(--text-muted); font-weight:600; margin-bottom:6px; }
+    .setup select{ padding:11px 12px; }
+    .setup .start-cell{ display:flex; align-items:end; }
+    .setup .start-cell .btn{ width:100%; justify-content:center; padding:12px 16px; }
+
+    /* ---- Game layout ---- */
+    .game-wrap{ margin-top:18px; }
+    .player-bar{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      background:var(--surface-2); border:1px solid var(--border); border-radius:12px;
+      padding:8px 12px; min-height:48px;
+    }
+    .player-bar .who{ display:flex; align-items:center; gap:9px; min-width:0; }
+    .player-bar .avatar{ width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+      background:var(--accent-soft); color:var(--accent); font-size:1.1rem; flex:none; }
+    .player-bar .name{ font-weight:700; font-size:.95rem; white-space:nowrap; }
+    .player-bar .sub{ font-size:.74rem; color:var(--text-muted); }
+    .captured{ display:flex; flex-wrap:wrap; gap:1px; align-items:center; min-height:18px; }
+    .captured svg{ width:17px; height:17px; }
+    .adv{ font-size:.78rem; font-weight:700; color:var(--text-muted); margin-left:4px; }
+    .clock{
+      font-variant-numeric:tabular-nums; font-weight:800; font-size:1.25rem; letter-spacing:.02em;
+      background:var(--surface); border:1px solid var(--border); border-radius:10px;
+      padding:6px 12px; min-width:84px; text-align:center; flex:none;
+    }
+    .clock.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+    .clock.low{ color:#e84848; }
+    .clock.active.low{ color:#fff; background:#e84848; border-color:#e84848; }
+    .clock.off{ font-size:1.1rem; }
+
+    /* ---- Board ---- */
+    .board-outer{ display:flex; justify-content:center; margin:12px 0; }
+    .board-wrap{ position:relative; width:min(94vw, 70vh, 560px); }
+    .board{
+      width:100%; aspect-ratio:1/1; display:grid;
+      grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(8,1fr);
+      border-radius:10px; overflow:hidden; box-shadow:var(--shadow);
+      touch-action:manipulation; user-select:none; -webkit-user-select:none;
+    }
+    .sq{ position:relative; display:grid; place-items:center; cursor:pointer; }
+    .sq.light{ background:var(--sq-light); }
+    .sq.dark{ background:var(--sq-dark); }
+    .sq .piece{ width:84%; height:84%; pointer-events:none; z-index:2; }
+    .sq.sel::after{ content:""; position:absolute; inset:0; background:var(--hl-move); z-index:1; }
+    .sq.last::after{ content:""; position:absolute; inset:0; background:var(--hl-last); z-index:0; }
+    .sq.check::before{ content:""; position:absolute; inset:0; z-index:1;
+      background:radial-gradient(circle, var(--hl-check) 12%, rgba(232,72,72,.25) 55%, transparent 72%); }
+    .sq .dot{ position:absolute; width:30%; height:30%; border-radius:50%;
+      background:rgba(20,40,20,.32); z-index:1; }
+    [data-theme="dark"] .sq .dot{ background:rgba(0,0,0,.34); }
+    .sq.cap .dot{ width:86%; height:86%; background:transparent;
+      border:5px solid rgba(20,40,20,.30); box-sizing:border-box; }
+    .sq .coord{ position:absolute; font-size:9px; font-weight:700; opacity:.7; z-index:1; line-height:1; }
+    .sq .coord.file{ right:3px; bottom:2px; }
+    .sq .coord.rank{ left:3px; top:2px; }
+    .sq.light .coord{ color:var(--sq-dark); }
+    .sq.dark .coord{ color:var(--sq-light); }
+
+    /* ---- Controls + status ---- */
+    .status-line{ text-align:center; font-weight:700; margin:8px 0 4px; min-height:24px; }
+    .status-line .think{ color:var(--accent); }
+    .status-line .win{ color:#2e9e5b; }
+    .status-line .lose{ color:#e84848; }
+    .controls{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:10px; }
+    .controls .btn{ padding:9px 13px; font-size:.9rem; }
+    .controls .btn svg{ width:16px; height:16px; }
+    .icon-btn{ display:inline-flex; align-items:center; gap:6px; }
+
+    .record-row{ display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
+    .record-row .stat{ min-width:84px; padding:12px 14px; }
+    .record-row .stat .num{ font-size:1.3rem; }
+
+    .moves{ margin-top:14px; }
+    .moves h2{ font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); margin:0 0 8px; }
+    .moves-list{ max-height:120px; overflow:auto; background:var(--surface-2); border:1px solid var(--border);
+      border-radius:10px; padding:8px 12px; font-variant-numeric:tabular-nums; font-size:.88rem; line-height:1.7; }
+    .moves-list .mv{ display:inline-block; min-width:54px; color:var(--text); }
+    .moves-list .mn{ color:var(--text-muted); margin-right:2px; }
+    .moves-list .empty{ color:var(--text-muted); }
+
+    /* ---- Promotion modal ---- */
+    .modal{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; place-items:center; z-index:50; }
+    .modal.open{ display:grid; }
+    .modal .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px;
+      padding:18px 20px; box-shadow:var(--shadow); text-align:center; max-width:320px; }
+    .modal .card h3{ margin:0 0 12px; font-size:1rem; }
+    .promo-opts{ display:flex; gap:10px; justify-content:center; }
+    .promo-opts button{ width:60px; height:60px; border:1px solid var(--border); border-radius:12px;
+      background:var(--surface-2); cursor:pointer; display:grid; place-items:center; }
+    .promo-opts button:hover{ border-color:var(--accent); background:var(--accent-soft); }
+    .promo-opts .piece{ width:46px; height:46px; }
+
+    /* ---- Piece styling (SVG) ---- */
+    .piece .pc-body{ stroke:none; }
+    .piece.w .pc-body{ fill:#f7f4ea; }
+    .piece.b .pc-body{ fill:#2b2824; }
+    .piece.w .pc-line{ fill:#2b2824; stroke:#2b2824; }
+    .piece.b .pc-line{ fill:#efe8d6; stroke:#efe8d6; }
+    .piece.w{ filter:
+      drop-shadow(.6px 0 0 #2b2824) drop-shadow(-.6px 0 0 #2b2824)
+      drop-shadow(0 .6px 0 #2b2824) drop-shadow(0 -.6px 0 #2b2824); }
+    .piece.b{ filter:
+      drop-shadow(.6px 0 0 #efe8d6) drop-shadow(-.6px 0 0 #efe8d6)
+      drop-shadow(0 .6px 0 #efe8d6) drop-shadow(0 -.6px 0 #efe8d6); }
+
+    /* ---- Fullscreen mode ---- */
+    .game-wrap:fullscreen{
+      background:var(--bg); padding:14px; display:flex; flex-direction:column;
+      justify-content:center; gap:6px; overflow:auto;
+    }
+    .game-wrap:fullscreen .board-wrap{ width:min(96vw, 82vh, 720px); margin:0 auto; }
+    .game-wrap:fullscreen .player-bar{ max-width:min(96vw,720px); margin:0 auto; width:100%; }
+    .game-wrap:fullscreen .controls,
+    .game-wrap:fullscreen .status-line{ max-width:720px; margin-left:auto; margin-right:auto; }
+    .game-wrap:fullscreen .moves, .game-wrap:fullscreen .record-row{ display:none; }
+    .game-wrap.fs-fallback{ position:fixed; inset:0; z-index:40; background:var(--bg);
+      padding:14px; overflow:auto; display:flex; flex-direction:column; justify-content:center; }
+    .game-wrap.fs-fallback .board-wrap{ width:min(96vw, 80vh, 720px); margin:0 auto; }
+    .game-wrap.fs-fallback .moves, .game-wrap.fs-fallback .record-row{ display:none; }
+
+    @media (max-width:480px){
+      .player-bar .sub{ display:none; }
+      .clock{ font-size:1.1rem; min-width:74px; padding:6px 8px; }
+      .controls .btn span.lbl{ display:none; }
+      .controls .btn{ padding:9px 11px; }
+    }
+
+    /* ---- Modern polish ---- */
+    .tool-main h1{ letter-spacing:-.02em; }
+    .board-wrap{ padding:10px; background:linear-gradient(160deg, var(--surface), var(--surface-2));
+      border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow); }
+    .board{ box-shadow:0 8px 26px rgba(0,0,0,.18); border-radius:9px; }
+    .sq{ transition:background .15s ease; }
+    .sq.sel::after{ box-shadow:inset 0 0 0 3px var(--accent); }
+    .sq .piece{ transition:transform .26s cubic-bezier(.22,.61,.36,1); will-change:transform; }
+    .player-bar{ background:linear-gradient(180deg, var(--surface), var(--surface-2));
+      transition:box-shadow .2s ease, border-color .2s ease; }
+    .player-bar.turn{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent), var(--shadow); }
+    .clock.active{ box-shadow:0 0 0 3px var(--accent-soft); }
+    .btn{ box-shadow:0 1px 2px rgba(0,0,0,.06); transition:background .15s ease, transform .05s ease, box-shadow .15s ease; }
+    .btn:active{ transform:translateY(1px); }
+    .btn-primary{ box-shadow:0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent); }
+    .controls .btn:hover{ border-color:var(--accent); }
+    .modal{ z-index:60; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
+    .modal .card{ animation:pop .18s ease; }
+    .promo-opts button{ transition:transform .1s ease, border-color .12s ease, background .12s ease; }
+    .promo-opts button:active{ transform:scale(.94); }
+    @keyframes pop{ from{ transform:scale(.92); opacity:0 } to{ transform:scale(1); opacity:1 } }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="../../">
+        <span class="logo">&lt;/&gt;</span>
+        <span>HTML Tools</span>
+      </a>
+      <button class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container tool-main">
+    <a class="back-link" href="../../">← All tools</a>
+    <h1>Chess</h1>
+    <p class="subtitle">Play offline against the computer. Pick a difficulty, choose a board you like, and go. Everything runs on your device.</p>
+
+    <!-- Setup -->
+    <div class="panel">
+      <div class="setup">
+        <div class="field">
+          <label for="level">Difficulty</label>
+          <select id="level">
+            <option value="easy">Easy — relaxed</option>
+            <option value="medium" selected>Medium — club</option>
+            <option value="hard">Hard — sharp</option>
+            <option value="expert">Expert — tough</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="boardTheme">Board theme</label>
+          <select id="boardTheme">
+            <option value="green" selected>Emerald</option>
+            <option value="walnut">Walnut</option>
+            <option value="ocean">Ocean</option>
+            <option value="slate">Slate</option>
+            <option value="amethyst">Amethyst</option>
+            <option value="coral">Coral</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="timeCtl">Clock</label>
+          <select id="timeCtl">
+            <option value="0">No clock</option>
+            <option value="3">3 min blitz</option>
+            <option value="5">5 min</option>
+            <option value="10" selected>10 min</option>
+            <option value="15">15 min</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="side">Play as</label>
+          <select id="side">
+            <option value="w" selected>White</option>
+            <option value="b">Black</option>
+            <option value="r">Random</option>
+          </select>
+        </div>
+        <div class="start-cell">
+          <button id="newGame" class="btn btn-primary">♟ New Game</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game -->
+    <div class="game-wrap" id="gameWrap">
+      <!-- opponent (top) -->
+      <div class="player-bar" id="topBar">
+        <div class="who">
+          <div class="avatar" id="topAvatar">🤖</div>
+          <div>
+            <div class="name" id="topName">Computer</div>
+            <div class="captured" id="topCaptured"></div>
+          </div>
+        </div>
+        <div class="clock" id="topClock">10:00</div>
+      </div>
+
+      <div class="board-outer">
+        <div class="board-wrap" id="boardWrap" data-board="green">
+          <div class="board" id="board"></div>
+        </div>
+      </div>
+
+      <!-- player (bottom) -->
+      <div class="player-bar" id="botBar">
+        <div class="who">
+          <div class="avatar" id="botAvatar">🙂</div>
+          <div>
+            <div class="name" id="botName">You</div>
+            <div class="captured" id="botCaptured"></div>
+          </div>
+        </div>
+        <div class="clock" id="botClock">10:00</div>
+      </div>
+
+      <div class="status-line" id="status">Press <b>New Game</b> to start.</div>
+
+      <div class="controls">
+        <button class="btn" id="undoBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg><span class="lbl">Undo</span></button>
+        <button class="btn" id="flipBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16V4M7 4 3 8M7 4l4 4"/><path d="M17 8v12M17 20l4-4M17 20l-4-4"/></svg><span class="lbl">Flip</span></button>
+        <button class="btn" id="resignBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4h13l-2 4 2 4H6"/></svg><span class="lbl">Resign</span></button>
+        <button class="btn" id="soundBtn"><svg id="soundIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M19 5a14 14 0 0 1 0 14M15.5 8.5a7 7 0 0 1 0 7"/></svg><span class="lbl">Sound</span></button>
+        <button class="btn" id="fsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span class="lbl">Fullscreen</span></button>
+      </div>
+
+      <div class="record-row">
+        <div class="stat"><div class="num" id="recWins">0</div><div class="label">Wins</div></div>
+        <div class="stat"><div class="num" id="recLosses">0</div><div class="label">Losses</div></div>
+        <div class="stat"><div class="num" id="recDraws">0</div><div class="label">Draws</div></div>
+        <div class="stat"><div class="num" id="moveCount">0</div><div class="label">Moves</div></div>
+      </div>
+
+      <div class="moves">
+        <h2>Move history</h2>
+        <div class="moves-list" id="movesList"><span class="empty">Moves will appear here.</span></div>
+      </div>
+
+      <!-- Promotion modal (inside game-wrap so it also shows in fullscreen) -->
+      <div class="modal" id="promoModal">
+        <div class="card">
+          <h3>Promote pawn to…</h3>
+          <div class="promo-opts" id="promoOpts"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How to use -->
+    <div class="howto">
+      <h2>How to use</h2>
+      <ol>
+        <li>Choose a <b>difficulty</b>, <b>board theme</b>, <b>clock</b> and which colour to <b>play as</b>, then press <b>New Game</b>.</li>
+        <li><b>Tap a piece</b> to see its legal moves (dots), then <b>tap a highlighted square</b> to move.</li>
+        <li><b>Castle</b> by selecting your king and tapping two squares toward the rook — or just tap your own rook. <b>Promote</b> a pawn by picking a piece in the pop-up.</li>
+        <li>Use <b>Fullscreen</b> for a native, distraction-free board. <b>Flip</b> turns the board around, <b>Undo</b> takes back your last move.</li>
+        <li>Your wins, losses and draws are saved on this device. Captured-piece points show who is ahead.</li>
+      </ol>
+      <p class="note">100% offline — no accounts, no tracking, nothing leaves your browser.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      Built for fun · Runs entirely in your browser ·
+      <a href="https://github.com/ccrbd/HTML-Tools" target="_blank" rel="noopener">Source on GitHub</a>
+    </div>
+  </footer>
+
+  <script src="../../assets/theme.js"></script>
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
