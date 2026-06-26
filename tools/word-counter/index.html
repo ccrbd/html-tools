@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Word Counter — HTML Tools</title>
+  <meta name="description" content="Count words, characters, sentences and estimated reading time instantly. Runs entirely in your browser." />
+  <link rel="stylesheet" href="../../assets/style.css" />
+  <script>
+    (function () {
+      var t = localStorage.getItem("html-tools-theme") ||
+        (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="../../">
+        <span class="logo">&lt;/&gt;</span>
+        <span>HTML Tools</span>
+      </a>
+      <button class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container tool-main">
+    <a class="back-link" href="../../">← All tools</a>
+    <h1>Word Counter</h1>
+    <p class="subtitle">Type or paste your text — counts update live. Nothing leaves your device.</p>
+
+    <div class="panel">
+      <textarea id="text" placeholder="Start typing or paste your text here…"></textarea>
+      <div class="stats">
+        <div class="stat"><div class="num" id="words">0</div><div class="label">Words</div></div>
+        <div class="stat"><div class="num" id="chars">0</div><div class="label">Characters</div></div>
+        <div class="stat"><div class="num" id="charsNoSpace">0</div><div class="label">No spaces</div></div>
+        <div class="stat"><div class="num" id="sentences">0</div><div class="label">Sentences</div></div>
+        <div class="stat"><div class="num" id="paragraphs">0</div><div class="label">Paragraphs</div></div>
+        <div class="stat"><div class="num" id="reading">0s</div><div class="label">Reading time</div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="copy">Copy text</button>
+        <button class="btn" id="clear">Clear</button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">Runs entirely in your browser · <a href="../../">HTML Tools</a></div>
+  </footer>
+
+  <script src="../../assets/theme.js"></script>
+  <script>
+    var STORE = "html-tools-word-counter";
+    var ta = document.getElementById("text");
+
+    function update() {
+      var text = ta.value;
+      var words = (text.trim().match(/\S+/g) || []).length;
+      var chars = text.length;
+      var charsNoSpace = text.replace(/\s/g, "").length;
+      var sentences = (text.match(/[^.!?]+[.!?]+/g) || []).length;
+      var paragraphs = (text.trim() ? text.trim().split(/\n\s*\n/).length : 0);
+      var mins = words / 200; // ~200 wpm
+      var reading = mins < 1
+        ? Math.ceil(mins * 60) + "s"
+        : Math.round(mins) + " min";
+
+      document.getElementById("words").textContent = words.toLocaleString();
+      document.getElementById("chars").textContent = chars.toLocaleString();
+      document.getElementById("charsNoSpace").textContent = charsNoSpace.toLocaleString();
+      document.getElementById("sentences").textContent = sentences.toLocaleString();
+      document.getElementById("paragraphs").textContent = paragraphs.toLocaleString();
+      document.getElementById("reading").textContent = words ? reading : "0s";
+
+      localStorage.setItem(STORE, text);
+    }
+
+    // Restore last text
+    ta.value = localStorage.getItem(STORE) || "";
+    ta.addEventListener("input", update);
+    update();
+
+    document.getElementById("clear").addEventListener("click", function () {
+      ta.value = "";
+      update();
+      ta.focus();
+    });
+    document.getElementById("copy").addEventListener("click", function () {
+      if (!ta.value) return;
+      navigator.clipboard.writeText(ta.value).then(function () {
+        var b = document.getElementById("copy");
+        var old = b.textContent;
+        b.textContent = "Copied!";
+        setTimeout(function () { b.textContent = old; }, 1200);
+      });
+    });
+  </script>
+</body>
+</html>
