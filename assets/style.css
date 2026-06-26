@@ -130,9 +130,9 @@ a:hover { text-decoration: underline; }
   margin: 24px auto 0;
   position: relative;
 }
-.tools-search input {
+.tools-search input[type="text"] {
   width: 100%;
-  padding: 12px 16px 12px 42px;
+  padding: 12px 16px 12px 44px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
@@ -141,7 +141,7 @@ a:hover { text-decoration: underline; }
   outline: none;
   transition: border-color .15s ease, box-shadow .15s ease;
 }
-.tools-search input:focus {
+.tools-search input[type="text"]:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
@@ -151,6 +151,7 @@ a:hover { text-decoration: underline; }
   transform: translateY(-50%);
   width: 18px; height: 18px;
   color: var(--text-muted);
+  pointer-events: none;
 }
 
 /* ---------- Tools grid ---------- */
