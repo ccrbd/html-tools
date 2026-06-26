@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Age Calculator — HTML Tools</title>
+  <meta name="description" content="Calculate exact age in years, months and days, plus next-birthday countdown and fun stats. Runs entirely in your browser." />
+  <link rel="stylesheet" href="../../assets/style.css" />
+  <script>
+    (function () {
+      var t = localStorage.getItem("html-tools-theme") ||
+        (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+  <style>
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .field label { display: block; font-size: .9rem; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+    .field input[type="date"] { width: 100%; padding: 12px 14px; border: 1px solid var(--border);
+      border-radius: 10px; background: var(--bg); color: var(--text); font-size: 1rem; font-family: inherit; outline: none; }
+    .field input[type="date"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .age-headline { text-align: center; margin: 26px 0 6px; }
+    .age-headline .big { font-size: clamp(2rem, 6vw, 3rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+    .age-headline .big span.unit { font-size: .45em; color: var(--text-muted); font-weight: 700; }
+    .age-sub { text-align: center; color: var(--text-muted); margin: 0 0 6px; }
+    .next-bday { text-align: center; background: var(--accent-soft); color: var(--accent);
+      border-radius: 12px; padding: 12px 16px; margin-top: 20px; font-weight: 600; }
+    .error { color: #ef4444; text-align: center; font-weight: 600; margin-top: 16px; }
+    details.guide { margin-top: 22px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 0 18px; }
+    details.guide summary { cursor: pointer; padding: 16px 0; font-weight: 600; list-style: none; }
+    details.guide summary::-webkit-details-marker { display: none; }
+    details.guide summary::before { content: "▸"; display: inline-block; margin-right: 8px;
+      color: var(--text-muted); transition: transform .15s ease; }
+    details.guide[open] summary::before { transform: rotate(90deg); }
+    details.guide .guide-body { padding-bottom: 18px; color: var(--text-muted); font-size: .95rem; }
+    details.guide .guide-body ul { margin: 0; padding-left: 20px; }
+    details.guide .guide-body li { margin: 6px 0; }
+    @media (max-width: 540px) { .field-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="../../">
+        <span class="logo">&lt;/&gt;</span>
+        <span>HTML Tools</span>
+      </a>
+      <button class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container tool-main">
+    <a class="back-link" href="../../">← All tools</a>
+    <h1>Age Calculator</h1>
+    <p class="subtitle">Find your exact age and a countdown to your next birthday. Nothing leaves your device.</p>
+
+    <div class="panel">
+      <div class="field-row">
+        <div class="field">
+          <label for="dob">Date of birth</label>
+          <input type="date" id="dob" />
+        </div>
+        <div class="field">
+          <label for="asof">Age at the date of</label>
+          <input type="date" id="asof" />
+        </div>
+      </div>
+
+      <div id="error" class="error" style="display:none"></div>
+
+      <div id="output" style="display:none">
+        <div class="age-headline">
+          <div class="big"><span id="hYears">0</span><span class="unit"> yr </span><span id="hMonths">0</span><span class="unit"> mo </span><span id="hDays">0</span><span class="unit"> d</span></div>
+        </div>
+        <p class="age-sub" id="bornOn"></p>
+
+        <div class="stats">
+          <div class="stat"><div class="num" id="tMonths">0</div><div class="label">Total months</div></div>
+          <div class="stat"><div class="num" id="tWeeks">0</div><div class="label">Total weeks</div></div>
+          <div class="stat"><div class="num" id="tDays">0</div><div class="label">Total days</div></div>
+          <div class="stat"><div class="num" id="tHours">0</div><div class="label">Total hours</div></div>
+          <div class="stat"><div class="num" id="tMinutes">0</div><div class="label">Total minutes</div></div>
+          <div class="stat"><div class="num" id="dow">—</div><div class="label">Born on a</div></div>
+        </div>
+
+        <div class="next-bday" id="nextBday"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" id="today">Set "as of" to today</button>
+        <button class="btn" id="clear">Clear</button>
+      </div>
+    </div>
+
+    <details class="guide">
+      <summary>How to use</summary>
+      <div class="guide-body">
+        <ul>
+          <li>Pick your <strong>date of birth</strong>. The result updates instantly.</li>
+          <li>The <strong>"age at"</strong> date defaults to today — change it to find your age on any past or future date.</li>
+          <li>You get your exact age in years, months and days, plus totals and a countdown to your next birthday.</li>
+          <li>Your last date of birth is remembered on this device, so it's ready next time.</li>
+        </ul>
+      </div>
+    </details>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">Runs entirely in your browser · <a href="../../">HTML Tools</a></div>
+  </footer>
+
+  <script src="../../assets/theme.js"></script>
+  <script>
+    var STORE = "html-tools-age-calculator";
+    var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+    var dob = document.getElementById("dob");
+    var asof = document.getElementById("asof");
+    var errorEl = document.getElementById("error");
+    var output = document.getElementById("output");
+
+    function fmtDate(d) {
+      return d.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    }
+    function todayStr() {
+      var n = new Date();
+      return n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0") + "-" + String(n.getDate()).padStart(2, "0");
+    }
+    function parse(str) {
+      if (!str) return null;
+      var p = str.split("-");
+      if (p.length !== 3) return null;
+      return new Date(+p[0], +p[1] - 1, +p[2]);
+    }
+
+    function update() {
+      var birth = parse(dob.value);
+      var asOf = parse(asof.value) || new Date();
+
+      if (!birth) { output.style.display = "none"; errorEl.style.display = "none"; return; }
+
+      if (birth > asOf) {
+        output.style.display = "none";
+        errorEl.style.display = "block";
+        errorEl.textContent = "Date of birth is after the \"age at\" date — check your dates.";
+        localStorage.setItem(STORE, dob.value);
+        return;
+      }
+      errorEl.style.display = "none";
+      output.style.display = "block";
+
+      // Exact years / months / days — month-anchoring method (matches dateutil.relativedelta).
+      // Count whole months, add to birth (clamping the day to the target month's length),
+      // and the remainder is the days. Guaranteed never negative, handles leap years & 31-day months.
+      var totalMonths = (asOf.getFullYear() - birth.getFullYear()) * 12 + (asOf.getMonth() - birth.getMonth());
+      var anchor = addMonths(birth, totalMonths);
+      if (anchor > asOf) { totalMonths--; anchor = addMonths(birth, totalMonths); }
+      var days = Math.round((asOf - anchor) / 86400000);
+      var years = Math.floor(totalMonths / 12);
+      var months = totalMonths % 12;
+
+      document.getElementById("hYears").textContent = years;
+      document.getElementById("hMonths").textContent = months;
+      document.getElementById("hDays").textContent = days;
+      document.getElementById("bornOn").textContent = "Born on " + fmtDate(birth);
+
+      // Totals
+      var msPerDay = 86400000;
+      var totalDays = Math.floor((asOf - birth) / msPerDay);
+      var totalMonths = years * 12 + months;
+      var totalHours = totalDays * 24;
+      var totalMinutes = totalHours * 60;
+
+      document.getElementById("tMonths").textContent = totalMonths.toLocaleString();
+      document.getElementById("tWeeks").textContent = Math.floor(totalDays / 7).toLocaleString();
+      document.getElementById("tDays").textContent = totalDays.toLocaleString();
+      document.getElementById("tHours").textContent = totalHours.toLocaleString();
+      document.getElementById("tMinutes").textContent = totalMinutes.toLocaleString();
+      document.getElementById("dow").textContent = DAYS[birth.getDay()];
+
+      // Next birthday (relative to asOf)
+      var next = new Date(asOf.getFullYear(), birth.getMonth(), birth.getDate());
+      if (next < asOf) next.setFullYear(asOf.getFullYear() + 1);
+      var daysToBday = Math.ceil((next - asOf) / msPerDay);
+      var nextEl = document.getElementById("nextBday");
+      if (daysToBday === 0) {
+        nextEl.textContent = "🎉 It's your birthday on this date! Happy birthday!";
+      } else {
+        var turning = next.getFullYear() - birth.getFullYear();
+        nextEl.textContent = "🎂 " + daysToBday + " day" + (daysToBday === 1 ? "" : "s") +
+          " until your next birthday (turning " + turning + ") on " +
+          next.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) + ".";
+      }
+
+      localStorage.setItem(STORE, dob.value);
+    }
+
+    // Init
+    asof.value = todayStr();
+    dob.value = localStorage.getItem(STORE) || "";
+    dob.addEventListener("input", update);
+    asof.addEventListener("input", update);
+
+    document.getElementById("today").addEventListener("click", function () {
+      asof.value = todayStr();
+      update();
+    });
+    document.getElementById("clear").addEventListener("click", function () {
+      dob.value = "";
+      asof.value = todayStr();
+      localStorage.removeItem(STORE);
+      update();
+      dob.focus();
+    });
+
+    update();
+  </script>
+</body>
+</html>
