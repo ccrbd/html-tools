@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0a84ff">
+<title>RAID Calculator — HTML Tools</title>
+<meta name="description" content="Calculate usable storage capacity by RAID type — RAID 0/1/5/6/10, SHR and SHR-2. Runs entirely in your browser.">
+<!-- Set theme before paint to avoid flash (shared site-wide key) -->
+<script>
+  (function () {
+    var t = localStorage.getItem("html-tools-theme") ||
+      (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", t);
+  })();
+</script>
+<style>
+  :root{
+    --bg:#eef1f5; --bg2:#f8fafc; --card:#ffffff; --ink:#16242f; --muted:#6b7a86;
+    --line:#e3e9ef; --line2:#eef2f6; --brand:#0a84ff; --brand2:#5e9bff;
+    --avail:#16c172; --avail2:#34d399; --parity:#f7a23b; --parity2:#fbbf24; --unused:#d3dce4;
+    --field:#f4f7fa; --chip:#ffffff; --shadow:0 1px 2px rgba(16,38,60,.06),0 10px 30px rgba(16,38,60,.07);
+    --shadow-sm:0 1px 2px rgba(16,38,60,.08); --sheet:rgba(255,255,255,.86);
+  }
+  html[data-theme="dark"]{
+    --bg:#0c1116; --bg2:#0f151c; --card:#161e27; --ink:#e7eef5; --muted:#8b9aa8;
+    --line:#243140; --line2:#1d2731; --brand:#3b9bff; --brand2:#2b6fd6;
+    --avail:#22d37e; --avail2:#16a866; --parity:#f8b14a; --parity2:#d98a25; --unused:#2c3a48;
+    --field:#10171f; --chip:#1b2530; --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 34px rgba(0,0,0,.45);
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4); --sheet:rgba(18,25,33,.9);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 80% -10%,var(--bg2),var(--bg)) fixed;color:var(--ink);
+    line-height:1.5;transition:background .35s ease,color .35s ease;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:max(18px,env(safe-area-inset-top)) 16px 90px}
+
+  .back-home{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;font-weight:600;
+    text-decoration:none;margin-bottom:14px;transition:color .2s}
+  .back-home:hover{color:var(--brand)}
+
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+  .brandmark{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+  .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--brand2));
+    display:grid;place-items:center;box-shadow:0 6px 16px rgba(10,132,255,.35);flex:0 0 auto}
+  h1{font-size:20px;margin:0;font-weight:800;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:12.5px;margin:1px 0 0}
+  .toggle{position:relative;width:58px;height:32px;border-radius:999px;border:1px solid var(--line);
+    background:var(--field);cursor:pointer;flex:0 0 auto;transition:.3s}
+  .toggle .knob{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;
+    background:var(--card);box-shadow:var(--shadow-sm);display:grid;place-items:center;transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+  html[data-theme="dark"] .toggle .knob{transform:translateX(26px)}
+  .toggle .knob svg{width:14px;height:14px;color:var(--brand)}
+
+  .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;align-items:start}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow);
+    transition:background .35s,border-color .35s}
+  .card h2{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 13px;font-weight:800}
+  #resultCard{position:sticky;top:14px}
+
+  .raid-types{display:flex;flex-wrap:wrap;gap:8px}
+  .rt{padding:9px 14px;border:1.5px solid var(--line);border-radius:999px;font-size:13px;font-weight:700;
+    cursor:pointer;background:var(--chip);color:var(--ink);
+    transition:transform .18s cubic-bezier(.34,1.56,.64,1),background .2s,border-color .2s,color .2s,box-shadow .2s}
+  .rt:active{transform:scale(.93)}
+  .rt:hover{border-color:var(--brand)}
+  .rt.active{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:transparent;color:#fff;
+    box-shadow:0 6px 16px rgba(10,132,255,.35)}
+  .rt.disabled{opacity:.32;pointer-events:none}
+  .desc{font-size:12.5px;color:var(--muted);margin-top:12px;min-height:18px}
+
+  .quick{display:flex;align-items:center;gap:10px;margin:4px 0 14px}
+  .quick label{font-weight:700;font-size:12.5px;color:var(--muted)}
+  select{appearance:none;-webkit-appearance:none;background:var(--field);border:1px solid var(--line);border-radius:10px;
+    padding:10px 30px 10px 11px;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7a86' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 9px center;transition:border-color .2s,background-color .35s}
+  select:focus{outline:none;border-color:var(--brand)}
+
+  .drives{display:flex;flex-direction:column;gap:10px}
+  .drive{display:grid;grid-template-columns:46px 1fr 44px;gap:10px;align-items:center;
+    animation:slideIn .32s cubic-bezier(.34,1.4,.64,1)}
+  @keyframes slideIn{from{opacity:0;transform:translateY(-8px) scale(.97)}to{opacity:1;transform:none}}
+  .drive.removing{animation:slideOut .24s ease forwards}
+  @keyframes slideOut{to{opacity:0;transform:translateX(-14px) scale(.95);height:0;margin:0}}
+  .bay{position:relative;height:44px;border-radius:11px;background:var(--field);border:1px solid var(--line);
+    display:grid;place-items:center;overflow:hidden}
+  .bay .fill{position:absolute;inset:auto 0 0 0;background:linear-gradient(180deg,var(--brand2),var(--brand));
+    transition:height .5s cubic-bezier(.22,1,.36,1)}
+  .bay .num{position:relative;font-size:12px;font-weight:800;color:var(--ink)}
+  .drive select{width:100%}
+  .rm{border:1px solid var(--line);background:var(--chip);border-radius:11px;height:44px;cursor:pointer;
+    color:var(--muted);font-size:18px;line-height:1;transition:transform .15s,border-color .2s,color .2s}
+  .rm:hover{border-color:#ef4444;color:#ef4444}
+  .rm:active{transform:scale(.9)}
+  .addbtn{margin-top:14px;width:100%;padding:13px;border:1.5px dashed var(--line);background:transparent;
+    border-radius:13px;font-weight:700;font-size:13.5px;cursor:pointer;color:var(--brand);transition:.2s}
+  .addbtn:hover{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 8%,transparent)}
+  .addbtn:active{transform:scale(.98)}
+  .addbtn:disabled{opacity:.4;cursor:not-allowed}
+
+  .ring{display:flex;align-items:center;gap:18px;margin:2px 0 4px}
+  .result-num{font-size:44px;font-weight:850;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+  .result-num .u{font-size:15px;color:var(--muted);font-weight:700;margin-left:6px}
+  .bar{height:32px;border-radius:11px;overflow:hidden;display:flex;margin:16px 0 14px;background:var(--unused);border:1px solid var(--line)}
+  .seg{height:100%;transition:width .6s cubic-bezier(.22,1,.36,1)}
+  .seg.a{background:linear-gradient(90deg,var(--avail2),var(--avail))}
+  .seg.p{background:linear-gradient(90deg,var(--parity2),var(--parity))}
+  .legend{display:flex;flex-direction:column;gap:10px;font-size:13px}
+  .legend .row{display:flex;align-items:center;justify-content:space-between}
+  .legend .l{display:flex;align-items:center;gap:9px;color:var(--muted);font-weight:600}
+  .dot{width:11px;height:11px;border-radius:4px;display:inline-block}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+  .stat{background:var(--field);border:1px solid var(--line2);border-radius:13px;padding:11px 13px;transition:background .35s}
+  .stat .k{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+  .stat .v{font-size:18px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+  .warn{background:color-mix(in srgb,var(--parity) 14%,transparent);border:1px solid color-mix(in srgb,var(--parity) 45%,transparent);
+    color:var(--ink);padding:11px 13px;border-radius:12px;font-size:12.5px;margin-top:14px;font-weight:600;
+    display:none;align-items:center;gap:8px;animation:slideIn .3s}
+  .warn svg{flex:0 0 auto;color:var(--parity)}
+  .foot{text-align:center;color:var(--muted);font-size:11.5px;margin-top:24px;line-height:1.6}
+
+  /* ---- mobile bottom sheet result ---- */
+  .dock{display:none}
+  @media(max-width:860px){
+    .grid{grid-template-columns:1fr}
+    #resultCard{display:none}          /* hide full card; use dock instead */
+    .wrap{padding-bottom:150px}
+    .dock{display:block;position:fixed;left:0;right:0;bottom:0;z-index:50;
+      background:var(--sheet);backdrop-filter:saturate(180%) blur(16px);-webkit-backdrop-filter:saturate(180%) blur(16px);
+      border-top:1px solid var(--line);box-shadow:0 -8px 30px rgba(16,38,60,.12);
+      padding:12px 16px calc(12px + env(safe-area-inset-bottom));transition:background .35s,border-color .35s}
+    .dock .drow{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+    .dock .big{font-size:30px;font-weight:850;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+    .dock .big .u{font-size:13px;color:var(--muted);font-weight:700;margin-left:5px}
+    .dock .tag{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--brand);margin-bottom:3px}
+    .dock .right{text-align:right;font-size:12px;color:var(--muted);font-weight:700;line-height:1.45}
+    .dock .right b{color:var(--ink)}
+    .dock .bar{height:14px;margin:10px 0 0;border-radius:7px}
+    .dock .dwarn{display:none;color:var(--parity);font-size:11.5px;font-weight:700;margin-top:8px}
+  }
+  @media(max-width:480px){ .result-num{font-size:40px} .rt{padding:8px 12px;font-size:12.5px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back-home" href="../../">← All tools</a>
+  <div class="top">
+    <a class="brandmark" href="../../">
+      <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="5" rx="1.5"/><rect x="3" y="11" width="18" height="5" rx="1.5"/><circle cx="7" cy="6.5" r=".9" fill="#fff"/><circle cx="7" cy="13.5" r=".9" fill="#fff"/></svg></div>
+      <div><h1>RAID Calculator</h1><p class="sub">Usable capacity by RAID type · SHR / SHR-2</p></div>
+    </a>
+    <button class="toggle" id="themeBtn" aria-label="Toggle dark mode">
+      <span class="knob"><span id="themeIcon"></span></span>
+    </button>
+  </div>
+
+  <div class="grid">
+    <!-- CONTROLS -->
+    <div class="card">
+      <h2>RAID Type</h2>
+      <div class="raid-types" id="raidTypes"></div>
+      <div class="desc" id="raidDesc"></div>
+
+      <h2 style="margin-top:22px">Drives</h2>
+      <div class="quick"><label>Set all to</label><select id="setAll"></select></div>
+      <div class="drives" id="drives"></div>
+      <button class="addbtn" id="addBtn">+ Add drive</button>
+      <div class="warn" id="warn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span id="warnTxt"></span></div>
+    </div>
+
+    <!-- FULL RESULT (desktop, sticky) -->
+    <div class="card" id="resultCard">
+      <h2>Result</h2>
+      <div class="ring">
+        <svg width="92" height="92" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="42" fill="none" stroke="var(--unused)" stroke-width="11"/>
+          <circle id="ringP" cx="50" cy="50" r="42" fill="none" stroke="var(--parity)" stroke-width="11" stroke-linecap="round" stroke-dasharray="0 999" transform="rotate(-90 50 50)" style="transition:stroke-dasharray .6s cubic-bezier(.22,1,.36,1)"/>
+          <circle id="ringA" cx="50" cy="50" r="42" fill="none" stroke="var(--avail)" stroke-width="11" stroke-linecap="round" stroke-dasharray="0 999" transform="rotate(-90 50 50)" style="transition:stroke-dasharray .6s cubic-bezier(.22,1,.36,1)"/>
+          <text id="ringPct" x="50" y="55" text-anchor="middle" font-size="20" font-weight="800" fill="var(--ink)">0%</text>
+        </svg>
+        <div>
+          <div class="result-num"><span id="usable">0</span><span class="u">TB available</span></div>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:4px;font-weight:600">of <span id="rawInline">0</span> TB raw</div>
+        </div>
+      </div>
+      <div class="bar"><div class="seg a" id="segA" style="width:0%"></div><div class="seg p" id="segP" style="width:0%"></div></div>
+      <div class="legend">
+        <div class="row"><div class="l"><span class="dot" style="background:var(--avail)"></span>Available capacity</div><b id="legAvail">0 TB</b></div>
+        <div class="row"><div class="l"><span class="dot" style="background:var(--parity)"></span>Protection (redundancy)</div><b id="legParity">0 TB</b></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">Drives</div><div class="v" id="mDrives">0</div></div>
+        <div class="stat"><div class="k">Fault tolerance</div><div class="v" id="mFault">0</div></div>
+        <div class="stat"><div class="k">Total raw</div><div class="v" id="mRaw">0 TB</div></div>
+        <div class="stat"><div class="k">Efficiency</div><div class="v" id="mEff">0%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">Estimates only. Real usable space is lower after formatting (1 TB ≈ 0.909 TiB) and filesystem overhead.</p>
+</div>
+
+<!-- MOBILE DOCK: always-visible result -->
+<div class="dock" id="dock">
+  <div class="drow">
+    <div>
+      <div class="tag" id="dTag">SHR</div>
+      <div class="big"><span id="dUsable">0</span><span class="u">TB free</span></div>
+    </div>
+    <div class="right">
+      <div><b id="dEff">0%</b> efficiency</div>
+      <div><b id="dFault">0</b> fault tolerance</div>
+    </div>
+  </div>
+  <div class="bar"><div class="seg a" id="dSegA" style="width:0%"></div><div class="seg p" id="dSegP" style="width:0%"></div></div>
+  <div class="dwarn" id="dWarn"></div>
+</div>
+
+<script>
+const SIZES=[0.5,1,2,3,4,6,8,10,12,14,16,18,20,22,24];
+const fmtSize=t=>t<1?(t*1000)+' GB':t+' TB';
+const RAIDS={
+  Basic:{min:1,max:1,desc:"Single drive. No redundancy — usable equals the drive's capacity."},
+  JBOD:{min:1,max:99,desc:"Just a Bunch Of Disks. Capacities concatenated. No redundancy."},
+  "RAID 0":{min:2,max:99,desc:"Striping. Maximum capacity & speed, but any single failure loses all data."},
+  "RAID 1":{min:2,max:99,desc:"Mirroring. Usable = smallest drive. Survives all-but-one failing."},
+  "RAID 5":{min:3,max:99,desc:"Single parity. Survives 1 failure. Usable = (N−1) × smallest."},
+  "RAID 6":{min:4,max:99,desc:"Double parity. Survives 2 failures. Usable = (N−2) × smallest."},
+  "RAID 10":{min:4,max:99,evenOnly:true,desc:"Mirrored stripes. Survives 1 per mirror. Usable = (N/2) × smallest."},
+  "SHR":{min:1,max:99,desc:"Hybrid RAID, 1-drive redundancy. Uses mixed drive sizes efficiently."},
+  "SHR-2":{min:2,max:99,desc:"Hybrid RAID, 2-drive redundancy. Better on mixed sizes than RAID 6."},
+};
+
+// ---- persistence (drives/type in tool key; theme shared site-wide) ----
+const KEY='raidcalc.v2';
+const THEME_KEY='html-tools-theme';
+function load(){
+  try{const s=JSON.parse(localStorage.getItem(KEY));
+    if(s&&RAIDS[s.type]&&Array.isArray(s.drives)&&s.drives.length)
+      return {type:s.type,drives:s.drives.filter(d=>SIZES.includes(d)).slice(0,24)};
+  }catch(e){}
+  return null;
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({type:state.type,drives:state.drives}));}catch(e){}}
+
+const saved=load();
+let state=saved?{type:saved.type,drives:saved.drives.length?saved.drives:[4,4,6,8]}:{type:"SHR",drives:[4,4,6,8]};
+
+function shr(sizes,red){const s=[...sizes].sort((a,b)=>a-b),n=s.length;let prev=0,u=0;
+  for(let i=0;i<n;i++){const h=s[i]-prev,cnt=n-i;if(cnt>red)u+=h*(cnt-red);prev=s[i];}return u;}
+function calc(type,d){const n=d.length,raw=d.reduce((a,b)=>a+b,0),min=Math.min(...d);let u=0,f=0;
+  switch(type){
+    case"Basic":u=d[0]||0;break; case"JBOD":u=raw;break; case"RAID 0":u=raw;break;
+    case"RAID 1":u=min;f=n-1;break; case"RAID 5":u=(n-1)*min;f=1;break;
+    case"RAID 6":u=(n-2)*min;f=2;break; case"RAID 10":u=Math.floor(n/2)*min;f=1;break;
+    case"SHR":u=n<=1?raw:shr(d,1);f=n<=1?0:1;break;
+    case"SHR-2":u=n<=2?raw:shr(d,2);f=n<=2?0:2;break;
+  }
+  return{raw,usable:Math.max(0,u),parity:Math.max(0,raw-Math.max(0,u)),fault:f};}
+
+const el=id=>document.getElementById(id);
+const opts=sel=>SIZES.map(s=>`<option value="${s}" ${s==sel?'selected':''}>${fmtSize(s)}</option>`).join('');
+const round=n=>+n.toFixed(2);
+
+function renderTypes(){
+  el('raidTypes').innerHTML=Object.keys(RAIDS).map(t=>{
+    const r=RAIDS[t],n=state.drives.length;
+    const bad=n<r.min||n>r.max||(r.evenOnly&&n%2!==0);
+    return `<div class="rt ${t==state.type?'active':''} ${bad?'disabled':''}" data-t="${t}">${t}</div>`;
+  }).join('');
+  el('raidDesc').textContent=RAIDS[state.type].desc;
+  document.querySelectorAll('.rt').forEach(b=>b.onclick=()=>{state.type=b.dataset.t;render();});
+}
+function renderDrives(){
+  el('drives').innerHTML=state.drives.map((d,i)=>`
+    <div class="drive">
+      <div class="bay"><div class="fill" style="height:${(d/24)*100}%"></div><div class="num">${i+1}</div></div>
+      <select data-i="${i}" class="dsel">${opts(d)}</select>
+      <button class="rm" data-i="${i}" aria-label="Remove drive">×</button>
+    </div>`).join('');
+  document.querySelectorAll('.dsel').forEach(s=>s.onchange=()=>{state.drives[+s.dataset.i]=+s.value;render();});
+  document.querySelectorAll('.rm').forEach(b=>b.onclick=()=>{
+    if(state.drives.length<=1)return;
+    const i=+b.dataset.i,node=b.closest('.drive');
+    node.classList.add('removing');
+    setTimeout(()=>{state.drives.splice(i,1);render();},210);
+  });
+  el('setAll').innerHTML=opts(state.drives[0]);
+  el('addBtn').disabled=state.drives.length>=24;
+}
+function renderResult(){
+  const r=calc(state.type,state.drives),tot=r.raw||1;
+  const aw=r.usable/tot,pw=r.parity/tot,pct=Math.round(aw*100);
+  const faultTxt=r.fault+(r.fault===1?' drive':' drives');
+  // full card
+  el('usable').textContent=round(r.usable);
+  el('rawInline').textContent=round(r.raw);
+  el('segA').style.width=(aw*100)+'%'; el('segP').style.width=(pw*100)+'%';
+  const C=2*Math.PI*42;
+  el('ringA').setAttribute('stroke-dasharray',`${aw*C} ${C-aw*C}`);
+  el('ringP').setAttribute('stroke-dasharray',`${pw*C} ${C-pw*C}`);
+  el('ringP').setAttribute('stroke-dashoffset',`${-aw*C}`);
+  el('ringPct').textContent=pct+'%';
+  el('legAvail').textContent=round(r.usable)+' TB';
+  el('legParity').textContent=round(r.parity)+' TB';
+  el('mDrives').textContent=state.drives.length;
+  el('mFault').textContent=faultTxt;
+  el('mRaw').textContent=round(r.raw)+' TB';
+  el('mEff').textContent=pct+'%';
+  // mobile dock
+  el('dTag').textContent=state.type;
+  el('dUsable').textContent=round(r.usable);
+  el('dEff').textContent=pct+'%';
+  el('dFault').textContent=faultTxt;
+  el('dSegA').style.width=(aw*100)+'%'; el('dSegP').style.width=(pw*100)+'%';
+  // warnings
+  const rt=RAIDS[state.type],n=state.drives.length;let msg='';
+  if(n<rt.min)msg=`Needs at least ${rt.min} drives — you have ${n}.`;
+  else if(rt.evenOnly&&n%2!==0)msg=`Needs an even number of drives — you have ${n}.`;
+  else if(state.type==="RAID 0")msg="No redundancy — one failure destroys all data.";
+  el('warn').style.display=msg?'flex':'none'; el('warnTxt').textContent=msg;
+  el('dWarn').style.display=msg?'block':'none'; el('dWarn').textContent='⚠ '+msg;
+}
+function render(){renderTypes();renderDrives();renderResult();save();}
+
+el('addBtn').onclick=()=>{if(state.drives.length<24){state.drives.push(state.drives.at(-1)||4);render();}};
+el('setAll').onchange=e=>{state.drives=state.drives.map(()=>+e.target.value);render();};
+
+// theme (shared across the whole site via html-tools-theme)
+const sun=`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>`;
+const moon=`<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>`;
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);el('themeIcon').innerHTML=t==='dark'?moon:sun;}
+let theme=localStorage.getItem(THEME_KEY)||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+el('themeBtn').onclick=()=>{theme=theme==='dark'?'light':'dark';applyTheme(theme);try{localStorage.setItem(THEME_KEY,theme);}catch(e){}};
+applyTheme(theme);
+
+render();
+</script>
+</body>
+</html>
