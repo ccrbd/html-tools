@@ -136,6 +136,13 @@
       if (p.length !== 3) return null;
       return new Date(+p[0], +p[1] - 1, +p[2]);
     }
+    function addMonths(d, n) {
+      var m = d.getMonth() + n;
+      var day = d.getDate();
+      var last = new Date(d.getFullYear(), m + 1, 0).getDate(); // days in target month
+      if (day > last) day = last;
+      return new Date(d.getFullYear(), m, day);
+    }
 
     function update() {
       var birth = parse(dob.value);
@@ -171,7 +178,6 @@
       // Totals
       var msPerDay = 86400000;
       var totalDays = Math.floor((asOf - birth) / msPerDay);
-      var totalMonths = years * 12 + months;
       var totalHours = totalDays * 24;
       var totalMinutes = totalHours * 60;
 
