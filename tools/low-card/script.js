@@ -2,13 +2,14 @@
    Low Card — mig33 elimination game engine
    Vanilla, object-oriented JavaScript. Async/await drives the
    20s timers, card flips and chat log so the UI never freezes.
-   Settings persist in localStorage under "html-tools-low-card".
+   Settings + balance persist in localStorage ("html-tools-low-card").
    ============================================================ */
 (function () {
   "use strict";
 
-  /* ---------- small helpers ---------- */
+  /* ---------- helpers ---------- */
   var STORE_KEY = "html-tools-low-card";
+  var DEFAULT_BALANCE = 1000;
   var $ = function (id) { return document.getElementById(id); };
   var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
   var rand = function (a, b) { return a + Math.random() * (b - a); };
@@ -19,8 +20,23 @@
   }
   function loadState() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { return {}; } }
   function saveState(s) { try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) {} }
+  function getBalance() { var s = loadState(); return typeof s.balance === "number" ? s.balance : DEFAULT_BALANCE; }
+  function setBalance(v) { var s = loadState(); s.balance = Math.max(0, Math.round(v)); saveState(s); return s.balance; }
+  function fmt(n) { return Number(n).toLocaleString(); }
+  function shuffleArr(a) {
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
 
   var SPEEDS = { fast: [800, 1200], normal: [1000, 2000], slow: [2000, 3000] };
+
+  var BOT_NAMES = [
+    "Bot_Alpha", "Bot_Bravo", "Bot_Charlie", "Bot_Delta", "Bot_Echo", "Bot_Foxtrot",
+    "Bot_Golf", "Bot_Hotel", "Bot_India", "Bot_Juliet", "Bot_Kilo", "Bot_Lima",
+    "Bot_Mike", "Bot_November", "Bot_Oscar", "Bot_Papa", "Bot_Quebec", "Bot_Romeo", "Bot_Sierra"
+  ];
+  var AVATARS = ["🤖", "🐯", "🦅", "🐺", "🦊", "🐲", "🦁", "🐼", "🦉", "🐸",
+    "🦈", "🐙", "🦄", "👾", "🐵", "🦂", "🐝", "🦖", "🐧"];
 
   /* ============================================================
      CARD + DECK
@@ -31,7 +47,6 @@
     { sym: "♦", name: "Diamonds", red: true },
     { sym: "♣", name: "Clubs", red: false }
   ];
-  // value 2..14 ; 14 = Ace (high), 2 = low
   var RANK_LABEL = { 11: "J", 12: "Q", 13: "K", 14: "A" };
   var RANK_WORD = { 11: "Jack", 12: "Queen", 13: "King", 14: "Ace" };
 
@@ -43,32 +58,18 @@
   function Deck() { this.cards = []; }
   Deck.prototype.build = function () {
     this.cards = [];
-    for (var v = 2; v <= 14; v++) {
-      for (var s = 0; s < SUITS.length; s++) this.cards.push(new Card(v, SUITS[s]));
-    }
+    for (var v = 2; v <= 14; v++) for (var s = 0; s < SUITS.length; s++) this.cards.push(new Card(v, SUITS[s]));
     return this;
   };
-  Deck.prototype.shuffle = function () {
-    for (var i = this.cards.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var t = this.cards[i]; this.cards[i] = this.cards[j]; this.cards[j] = t;
-    }
-    return this;
-  };
-  Deck.prototype.draw = function () {
-    if (!this.cards.length) this.build().shuffle();
-    return this.cards.pop();
-  };
+  Deck.prototype.shuffle = function () { shuffleArr(this.cards); return this; };
+  Deck.prototype.draw = function () { if (!this.cards.length) this.build().shuffle(); return this.cards.pop(); };
 
   /* ============================================================
      SOUND — Web Audio synth (no external assets)
      ============================================================ */
   function Sfx() { this.ctx = null; this.muted = false; }
   Sfx.prototype.ensure = function () {
-    if (!this.ctx) {
-      var AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) this.ctx = new AC();
-    }
+    if (!this.ctx) { var AC = window.AudioContext || window.webkitAudioContext; if (AC) this.ctx = new AC(); }
     if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
     return this.ctx;
   };
@@ -87,39 +88,28 @@
   Sfx.prototype.tick = function () { this.tone(880, 0.05, "square", 0.10); };
   Sfx.prototype.draw = function () {
     var ctx = this.ensure(); if (!ctx || this.muted) return;
-    var t = ctx.currentTime;
-    var len = Math.floor(ctx.sampleRate * 0.18);
-    var buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    var d = buf.getChannelData(0);
+    var t = ctx.currentTime, len = Math.floor(ctx.sampleRate * 0.18);
+    var buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
     for (var i = 0; i < len; i++) { var k = 1 - i / len; d[i] = (Math.random() * 2 - 1) * k * k; }
     var src = ctx.createBufferSource(); src.buffer = buf;
     var bp = ctx.createBiquadFilter(); bp.type = "bandpass";
-    bp.frequency.setValueAtTime(3200, t);
-    bp.frequency.exponentialRampToValueAtTime(1100, t + 0.16);
-    bp.Q.value = 0.7;
-    var g = ctx.createGain();
-    g.gain.setValueAtTime(0.28, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    bp.frequency.setValueAtTime(3200, t); bp.frequency.exponentialRampToValueAtTime(1100, t + 0.16); bp.Q.value = 0.7;
+    var g = ctx.createGain(); g.gain.setValueAtTime(0.26, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
     src.connect(bp); bp.connect(g); g.connect(ctx.destination);
     src.start(t); src.stop(t + 0.2);
   };
   Sfx.prototype.reveal = function () {
-    // punchy synth chord + low gong
     var semis = [0, 4, 7, 12], base = 220, self = this;
     semis.forEach(function (s) { self.tone(base * Math.pow(2, s / 12), 0.6, "sawtooth", 0.09, 0); });
     this.tone(110, 0.75, "sine", 0.18, 0);
   };
   Sfx.prototype.eliminate = function () {
     var ctx = this.ensure(); if (!ctx || this.muted) return;
-    var t = ctx.currentTime;
-    var o = ctx.createOscillator(), g = ctx.createGain();
+    var t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
     o.type = "square";
-    o.frequency.setValueAtTime(440, t);
-    o.frequency.exponentialRampToValueAtTime(70, t + 0.5);
-    g.gain.setValueAtTime(0.2, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
-    o.connect(g); g.connect(ctx.destination);
-    o.start(t); o.stop(t + 0.6);
+    o.frequency.setValueAtTime(440, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.5);
+    g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+    o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.6);
   };
   Sfx.prototype.victory = function () {
     var seq = [523.25, 659.25, 783.99, 1046.5], self = this;
@@ -131,82 +121,79 @@
      PLAYER
      ============================================================ */
   function Player(name, isHuman, avatar) {
-    this.name = name;
-    this.isHuman = !!isHuman;
-    this.avatar = avatar;
-    this.eliminated = false;
-    this.currentCard = null;
+    this.name = name; this.isHuman = !!isHuman; this.avatar = avatar;
+    this.eliminated = false; this.currentCard = null;
     this.seatEl = null; this.cardEl = null; this.stateEl = null;
   }
 
   /* ============================================================
      GAME
      ============================================================ */
-  var CIRC = 326.726; // 2π·52
+  var CIRC = 326.726;
 
   function Game() {
     // dom
-    this.lobby = $("lobby");
-    this.stage = $("stage");
-    this.arena = $("arena");
-    this.seatsEl = $("seats");
-    this.feed = $("chatFeed");
-    this.chatOnline = $("chatOnline");
-    this.statusEl = $("statusLine");
-    this.roundBadge = $("roundBadge");
-    this.potBadge = $("potBadge");
-    this.deckBtn = $("drawDeck");
-    this.fx = $("fxLayer");
-    this.timerWrap = $("timerWrap");
-    this.timerNum = $("timerNum");
+    this.lobby = $("lobby"); this.stage = $("stage"); this.arena = $("arena");
+    this.seatsEl = $("seats"); this.feed = $("chatFeed"); this.chatOnline = $("chatOnline");
+    this.statusEl = $("statusLine"); this.roundBadge = $("roundBadge");
+    this.potBadge = $("potBadge"); this.balBadge = $("balBadge");
+    this.deckBtn = $("drawDeck"); this.fx = $("fxLayer");
+    this.timerWrap = $("timerWrap"); this.timerNum = $("timerNum");
     this.ringFill = this.timerWrap.querySelector(".ring-fill");
+    this.footRow = $("footRow"); this.spectateBar = $("spectateBar");
     this.resultOverlay = $("resultOverlay");
-    this.sfxBtn = $("sfxBtn");
-    this.autoBtn = $("autoBtn");
+    this.sfxBtn = $("sfxBtn"); this.autoBtn = $("autoBtn"); this.fsBtn = $("fsBtn");
     // state
-    this.sfx = new Sfx();
-    this.deck = new Deck();
-    this.players = [];
-    this.active = [];
-    this.human = null;
-    this.round = 0;
-    this.pot = 0;
-    this.autoPlay = false;
-    this.speed = SPEEDS.normal;
-    this.roundSeconds = 20;
-    this.tieSeconds = 10;
-    this.epoch = 0;           // bumped to abort stale async loops
-    this._timers = [];
-    this._tick = null;
-    this._needed = 0;
-    this._drawn = 0;
-    this._phaseResolve = null;
-    this._humanCanDraw = false;
+    this.sfx = new Sfx(); this.deck = new Deck();
+    this.players = []; this.active = []; this.human = null;
+    this.round = 0; this.numPlayers = 4; this.stake = 50; this.potTotal = 0;
+    this.autoPlay = false; this.speed = SPEEDS.normal;
+    this.roundSeconds = 20; this.tieSeconds = 10;
+    this.epoch = 0; this.fast = false; this.spectating = false;
+    this._timers = []; this._tick = null;
+    this._needed = 0; this._drawn = 0; this._phaseResolve = null; this._humanCanDraw = false;
   }
 
-  /* ---------- settings ---------- */
+  /* ---------- fast-aware wait ---------- */
+  Game.prototype.wait = function (ms) { return sleep(this.fast ? 0 : ms); };
+  Game.prototype.botDelay = function () { return this.fast ? 0 : rand(this.speed[0], this.speed[1]); };
+
+  /* ---------- settings + economy ---------- */
   Game.prototype.readSettings = function () {
-    var s = {
-      name: ($("yourName").value || "You").trim().slice(0, 12) || "You",
-      theme: $("themeSel").value,
-      pot: +$("potSel").value,
-      speed: $("speedSel").value,
-      autoPlay: $("autoPlay").checked,
-      muteSfx: $("muteSfx").checked
-    };
+    var s = loadState();
+    s.name = ($("yourName").value || "You").trim().slice(0, 12) || "You";
+    s.players = +$("playerSel").value;
+    s.stake = +$("stakeSel").value;
+    s.theme = $("themeSel").value;
+    s.speed = $("speedSel").value;
+    s.autoPlay = $("autoPlay").checked;
+    s.muteSfx = $("muteSfx").checked;
+    if (typeof s.balance !== "number") s.balance = DEFAULT_BALANCE;
     saveState(s);
     return s;
   };
   Game.prototype.restoreSettings = function () {
     var s = loadState();
     if (s.name) $("yourName").value = s.name;
+    if (s.players) $("playerSel").value = String(s.players);
+    if (s.stake) $("stakeSel").value = String(s.stake);
     if (s.theme) $("themeSel").value = s.theme;
-    if (s.pot) $("potSel").value = String(s.pot);
     if (s.speed) $("speedSel").value = s.speed;
     if (typeof s.autoPlay === "boolean") $("autoPlay").checked = s.autoPlay;
     if (typeof s.muteSfx === "boolean") $("muteSfx").checked = s.muteSfx;
-    // live theme preview on the (hidden) arena
     this.arena.dataset.lcTheme = $("themeSel").value || "arcade";
+    this.updateEconomy();
+  };
+  Game.prototype.updateEconomy = function () {
+    var bal = getBalance();
+    var stake = +$("stakeSel").value;
+    var n = +$("playerSel").value;
+    $("balanceVal").textContent = fmt(bal);
+    $("potPreview").innerHTML = "Pot this game: <strong>💰 " + fmt(stake * n) +
+      "</strong> · you ante <strong>💰 " + fmt(stake) + "</strong>";
+    var broke = bal < stake;
+    $("startBtn").disabled = broke;
+    $("warnNote").hidden = !broke;
   };
 
   /* ---------- chat + status ---------- */
@@ -223,20 +210,18 @@
 
   /* ---------- fx ---------- */
   Game.prototype.toast = function (text, cls) {
+    if (this.fast) return;
     var t = document.createElement("div");
-    t.className = "toast " + (cls || "");
-    t.textContent = text;
+    t.className = "toast " + (cls || ""); t.textContent = text;
     this.fx.appendChild(t);
     setTimeout(function () { t.remove(); }, 1400);
   };
   Game.prototype.shatterAt = function (seatEl) {
-    var a = this.arena.getBoundingClientRect();
-    var r = seatEl.getBoundingClientRect();
-    var cx = r.left - a.left + r.width / 2;
-    var cy = r.top - a.top + r.height / 2;
-    for (var i = 0; i < 14; i++) {
-      var sh = document.createElement("div");
-      sh.className = "shard";
+    if (this.fast) return;
+    var a = this.arena.getBoundingClientRect(), r = seatEl.getBoundingClientRect();
+    var cx = r.left - a.left + r.width / 2, cy = r.top - a.top + r.height / 2;
+    for (var i = 0; i < 12; i++) {
+      var sh = document.createElement("div"); sh.className = "shard";
       sh.style.left = cx + "px"; sh.style.top = cy + "px";
       this.fx.appendChild(sh);
       (function (sh) {
@@ -254,6 +239,9 @@
 
   /* ---------- seats / cards ---------- */
   Game.prototype.buildSeats = function () {
+    var n = this.players.length;
+    var size = n <= 4 ? "size-lg" : (n <= 10 ? "size-md" : "size-sm");
+    this.seatsEl.className = "seats " + size;
     this.seatsEl.innerHTML = "";
     var self = this;
     this.players.forEach(function (p) {
@@ -297,7 +285,6 @@
     this.timerWrap.style.visibility = "visible";
     this.timerWrap.classList.remove("urgent");
     this.timerNum.textContent = seconds;
-    // jump the ring to full with no animation, then let it deplete smoothly
     this.ringFill.style.transition = "none";
     this.setRing(seconds, seconds);
     void this.ringFill.getBoundingClientRect();
@@ -315,57 +302,39 @@
     if (this._tick) { clearInterval(this._tick); this._tick = null; }
     this.timerWrap.classList.remove("urgent");
   };
-  Game.prototype.hideTimer = function () {
-    this.stopTimer();
-    this.timerWrap.style.visibility = "hidden";
-  };
+  Game.prototype.hideTimer = function () { this.stopTimer(); this.timerWrap.style.visibility = "hidden"; };
 
-  /* ---------- draw phase ----------
-     Resolves once every player in `group` has drawn a card. */
+  /* ---------- draw phase ---------- */
   Game.prototype.drawPhase = function (group, seconds) {
     var self = this, myEpoch = this.epoch;
     return new Promise(function (resolve) {
-      self._needed = group.length;
-      self._drawn = 0;
-      self._phaseResolve = resolve;
+      self._needed = group.length; self._drawn = 0; self._phaseResolve = resolve;
 
-      // arrange seat states
       self.players.forEach(function (p) {
         if (group.indexOf(p) > -1) {
-          self.resetCard(p);
-          p.stateEl.textContent = "to draw…";
-          p.seatEl.classList.add("active");
-          p.seatEl.classList.remove("safe");
+          self.resetCard(p); p.stateEl.textContent = "to draw…";
+          p.seatEl.classList.add("active"); p.seatEl.classList.remove("safe");
         } else if (!p.eliminated) {
-          p.seatEl.classList.remove("active");
-          p.seatEl.classList.add("safe");
+          p.seatEl.classList.remove("active"); p.seatEl.classList.add("safe");
           p.stateEl.textContent = "safe";
         }
       });
 
-      // bots draw with natural delay
+      // bots draw with delay
       group.forEach(function (p) {
         if (p.isHuman) return;
-        var delay = rand(self.speed[0], self.speed[1]);
-        var id = setTimeout(function () {
-          if (myEpoch !== self.epoch) return;
-          self.doDraw(p);
-        }, delay);
+        var id = setTimeout(function () { if (myEpoch !== self.epoch) return; self.doDraw(p); }, self.botDelay());
         self._timers.push(id);
       });
 
-      // human handling
       var humanInPhase = group.indexOf(self.human) > -1 && !self.human.eliminated;
       if (humanInPhase) {
         if (self.autoPlay) {
           self.hideTimer();
           self.deckBtn.disabled = true;
           self.deckBtn.querySelector(".deck-sub").textContent = "auto";
-          self.setStatus('🤖 Auto-play is drawing for you…');
-          var aid = setTimeout(function () {
-            if (myEpoch !== self.epoch) return;
-            self.doDraw(self.human);
-          }, rand(700, 1500));
+          self.setStatus("🤖 Auto-play is drawing for you…");
+          var aid = setTimeout(function () { if (myEpoch !== self.epoch) return; self.doDraw(self.human); }, rand(700, 1500));
           self._timers.push(aid);
         } else {
           self._humanCanDraw = true;
@@ -384,13 +353,13 @@
         self.hideTimer();
         self.deckBtn.disabled = true;
         self.deckBtn.querySelector(".deck-sub").textContent = "watching";
-        self.setStatus("Watching the table…");
+        if (!self.spectating) self.setStatus("Watching the table…");
       }
     });
   };
 
   Game.prototype.doDraw = function (player) {
-    if (player.currentCard) return;           // already drew this phase
+    if (player.currentCard) return;
     var card = this.deck.draw();
     player.currentCard = card;
     this.fillCard(player, card);
@@ -407,9 +376,8 @@
     }
 
     this._drawn++;
-    if (this._drawn < this._needed) {
-      if (this._drawn === this._needed - 1) this.setStatus("Waiting for the last player…");
-      else this.setStatus("Cards being drawn…");
+    if (this._drawn < this._needed && !this.spectating) {
+      this.setStatus(this._drawn === this._needed - 1 ? "Waiting for the last player…" : "Cards being drawn…");
     }
     if (this._drawn >= this._needed && this._phaseResolve) {
       var r = this._phaseResolve; this._phaseResolve = null; r();
@@ -425,11 +393,8 @@
     var self = this;
     this.setStatus("Showdown — cards flip!");
     this.sfx.reveal();
-    group.forEach(function (p) {
-      p.cardEl.classList.remove("dealing");
-      p.cardEl.classList.add("flipped");
-    });
-    return sleep(160).then(function () {
+    group.forEach(function (p) { p.cardEl.classList.remove("dealing"); p.cardEl.classList.add("flipped"); });
+    return this.wait(160).then(function () {
       group.forEach(function (p) {
         var c = p.currentCard;
         self.chat(p.isHuman ? "you" : "draw", p.name, "has drawn a " + c.fullName());
@@ -445,25 +410,20 @@
     var tied = group.filter(function (p) { return p.currentCard.value === min; });
     tied.forEach(function (p) { p.cardEl.classList.add("lowest"); });
 
-    return sleep(450).then(function () {
+    return this.wait(450).then(function () {
       if (tied.length === 1) return tied[0];
-      // SUDDEN DEATH between the tied-lowest players
       var lbl = tied[0].currentCard.label();
       self.chat("system", "System",
         "Tie on " + lbl + "! Sudden death: " + tied.map(function (p) { return p.name; }).join(", ") + ".");
       self.toast("SUDDEN DEATH", "");
       self.setStatus('<span class="hl">Sudden death</span> — tied players redraw!');
-      return sleep(1150).then(function () {
+      return self.wait(1100).then(function () {
         if (myEpoch !== self.epoch) return tied[0];
         return self.drawPhase(tied, self.tieSeconds).then(function () {
           if (myEpoch !== self.epoch) return tied[0];
           return self.reveal(tied);
-        }).then(function () {
-          return sleep(780);
-        }).then(function () {
-          if (myEpoch !== self.epoch) return tied[0];
-          return self.resolveElimination(tied);
-        });
+        }).then(function () { return self.wait(780); })
+          .then(function () { if (myEpoch !== self.epoch) return tied[0]; return self.resolveElimination(tied); });
       });
     });
   };
@@ -474,12 +434,12 @@
     player.seatEl.classList.remove("active", "safe");
     player.cardEl.classList.add("lowest");
     this.setStatus('<span class="hl">' + esc(player.name) + "</span> holds the lowest card!");
-    return sleep(450).then(function () {
+    return this.wait(450).then(function () {
       self.shatterAt(player.seatEl);
       player.seatEl.classList.add("shatter");
       self.chat("elim", "System", player.name + " has been eliminated!");
       self.toast((player.isHuman ? "YOU ARE" : player.name + " is") + " OUT", "bad");
-      return sleep(820);
+      return self.wait(820);
     }).then(function () {
       player.eliminated = true;
       player.seatEl.classList.remove("shatter");
@@ -487,10 +447,22 @@
       player.stateEl.textContent = "eliminated";
       self.active = self.active.filter(function (p) { return p !== player; });
       self.chatOnline.textContent = self.active.length + " online";
-      if (player.isHuman && self.active.length > 1) {
-        self.chat("system", "System", "You are out — watching the bots fight for the pot.");
-      }
+      if (player.isHuman && self.active.length > 1) self.enterSpectator();
     });
+  };
+
+  /* ---------- spectator mode ---------- */
+  Game.prototype.enterSpectator = function () {
+    this.spectating = true;
+    this.hideTimer();
+    this.footRow.hidden = true;
+    this.spectateBar.hidden = false;
+    this.setStatus("You’re out — fast-forward, or keep watching.");
+    this.chat("system", "System", "You are out. Hit “Simulate to end” to settle instantly, or keep watching.");
+  };
+  Game.prototype.exitSpectatorUI = function () {
+    this.spectateBar.hidden = true;
+    this.footRow.hidden = false;
   };
 
   /* ---------- one round ---------- */
@@ -503,10 +475,10 @@
     this.drawPhase(this.active.slice(), this.roundSeconds).then(function () {
       if (myEpoch !== self.epoch) return;
       self.setStatus("Showdown!");
-      return sleep(250).then(function () { return self.reveal(self.active); });
+      return self.wait(250).then(function () { return self.reveal(self.active); });
     }).then(function () {
       if (myEpoch !== self.epoch) return;
-      return sleep(760);
+      return self.wait(760);
     }).then(function () {
       if (myEpoch !== self.epoch) return;
       return self.resolveElimination(self.active.slice());
@@ -515,12 +487,9 @@
       return self.eliminate(loser);
     }).then(function () {
       if (myEpoch !== self.epoch) return;
-      if (self.active.length <= 1) { return self.finish(self.active[0]); }
+      if (self.active.length <= 1) return self.finish(self.active[0]);
       self.chat("system", "System", self.active.length + " players remain.");
-      return sleep(950).then(function () {
-        if (myEpoch !== self.epoch) return;
-        self.playRound();
-      });
+      return self.wait(950).then(function () { if (myEpoch !== self.epoch) return; self.playRound(); });
     });
   };
 
@@ -529,6 +498,7 @@
     var self = this;
     this.hideTimer();
     this.deckBtn.disabled = true;
+    this.exitSpectatorUI();
     this.players.forEach(function (p) { p.seatEl.classList.remove("active", "safe"); });
     if (winner) {
       winner.seatEl.classList.add("active");
@@ -536,54 +506,69 @@
       winner.stateEl.textContent = "WINNER";
     }
     var youWon = !!(winner && winner.isHuman);
+
+    var bal = getBalance();
+    if (youWon) bal = setBalance(bal + this.potTotal);
+    this.balBadge.textContent = "💵 " + fmt(bal);
+
     if (youWon) this.sfx.victory();
     this.chat("win", "System", winner
-      ? winner.name + " survives and wins the pot of " + this.pot.toLocaleString() + " credits! 🏆"
+      ? winner.name + " survives and wins the pot of " + fmt(this.potTotal) + " credits! 🏆"
       : "No winner.");
     this.setStatus(youWon ? "🏆 You win the pot!" : (winner ? winner.name + " wins." : ""));
+    this.fast = false; // settle
     this.toast(youWon ? "YOU WIN!" : (winner ? winner.name + " WINS" : ""), youWon ? "good" : "");
 
-    return sleep(750).then(function () {
+    return sleep(600).then(function () {
       $("resultEmoji").textContent = youWon ? "🏆" : "💀";
       $("resultTitle").textContent = youWon ? "You win the pot!" : (winner ? winner.name + " wins" : "Game over");
       $("resultBody").textContent = youWon
-        ? "You outlasted everyone and scooped " + self.pot.toLocaleString() + " credits."
-        : "You were knocked out — " + (winner ? winner.name : "a bot") + " took the " +
-          self.pot.toLocaleString() + " pot. Run it back?";
+        ? "You outlasted " + (self.numPlayers - 1) + " rivals and scooped the " + fmt(self.potTotal) + " pot."
+        : "You were knocked out — " + (winner ? winner.name : "a bot") + " took the " + fmt(self.potTotal) + " pot.";
+      $("resultBalance").innerHTML = youWon
+        ? "Net <strong>+" + fmt(self.potTotal - self.stake) + "</strong> · Balance: 💵 " + fmt(bal)
+        : "Net <strong>−" + fmt(self.stake) + "</strong> · Balance: 💵 " + fmt(bal);
       self.resultOverlay.hidden = false;
+      self.updateEconomy();
     });
   };
 
   /* ---------- lifecycle ---------- */
   Game.prototype.cleanup = function () {
     this._timers.forEach(function (id) { clearTimeout(id); });
-    this._timers = [];
-    this.stopTimer();
-    this._phaseResolve = null;
-    this._humanCanDraw = false;
+    this._timers = []; this.stopTimer();
+    this._phaseResolve = null; this._humanCanDraw = false;
   };
 
   Game.prototype.start = function () {
     var s = this.readSettings();
-    this.epoch++;                 // abort anything from a previous match
-    this.cleanup();
+    this.numPlayers = s.players; this.stake = s.stake;
 
-    this.pot = +s.pot;
-    this.potBadge.textContent = "💰 " + this.pot.toLocaleString();
+    var bal = getBalance();
+    if (bal < this.stake) { this.updateEconomy(); return; } // safety guard
+
+    this.epoch++; this.cleanup();
+    this.fast = false; this.spectating = false;
+    this.exitSpectatorUI();
+
+    bal = setBalance(bal - this.stake);          // ante
+    this.potTotal = this.stake * this.numPlayers;
+    this.balBadge.textContent = "💵 " + fmt(bal);
+    this.potBadge.textContent = "💰 " + fmt(this.potTotal);
+
     this.arena.dataset.lcTheme = s.theme;
-    this.autoPlay = s.autoPlay;
-    this.sfx.muted = s.muteSfx;
+    this.autoPlay = s.autoPlay; this.sfx.muted = s.muteSfx;
     this.autoBtn.setAttribute("aria-pressed", String(this.autoPlay));
     this.sfxBtn.setAttribute("aria-pressed", String(!s.muteSfx));
-    this.sfxBtn.textContent = s.muteSfx ? "🔇 SFX" : "🔊 SFX";
+    this.sfxBtn.textContent = s.muteSfx ? "🔇" : "🔊";
     this.speed = SPEEDS[s.speed] || SPEEDS.normal;
 
-    this.players = [
-      new Player(s.name, true, "🧑"),
-      new Player("Bot_Alpha", false, "🤖"),
-      new Player("Bot_Bravo", false, "🐯"),
-      new Player("Bot_Charlie", false, "🦅")
-    ];
+    // build players: human + (n-1) bots
+    var pool = shuffleArr(BOT_NAMES.slice());
+    this.players = [new Player(s.name, true, "🧑")];
+    for (var i = 0; i < this.numPlayers - 1; i++) {
+      this.players.push(new Player(pool[i % pool.length], false, AVATARS[i % AVATARS.length]));
+    }
     this.human = this.players[0];
     this.active = this.players.slice();
     this.round = 0;
@@ -591,27 +576,41 @@
 
     this.buildSeats();
     this.feed.innerHTML = "";
-    this.chatOnline.textContent = "4 online";
+    this.chatOnline.textContent = this.numPlayers + " online";
     this.resultOverlay.hidden = true;
     this.lobby.hidden = true;
     this.stage.hidden = false;
     this.hideTimer();
 
-    this.sfx.ensure(); // unlock audio inside the user gesture
+    this.sfx.ensure();
     this.chat("system", "System",
-      "Welcome to the lowcard room. Pot is " + this.pot.toLocaleString() +
-      " credits. Good luck, " + this.human.name + "!");
+      "Welcome to the lowcard room — " + this.numPlayers + " players, pot " + fmt(this.potTotal) +
+      ". You anted " + fmt(this.stake) + ". Good luck, " + this.human.name + "!");
 
     var self = this;
     sleep(700).then(function () { self.playRound(); });
   };
 
   Game.prototype.toLobby = function () {
-    this.epoch++;
-    this.cleanup();
+    this.epoch++; this.cleanup();
+    this.fast = false; this.spectating = false;
+    this.exitSpectatorUI();
     this.resultOverlay.hidden = true;
     this.stage.hidden = true;
     this.lobby.hidden = false;
+    this.updateEconomy();
+  };
+
+  Game.prototype.toggleFullscreen = function () {
+    var el = this.arena;
+    var fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!fsEl) {
+      var req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (req) req.call(el);
+    } else {
+      var exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+    }
   };
 
   /* ============================================================
@@ -620,53 +619,61 @@
   var game = new Game();
   game.restoreSettings();
 
-  // persist lobby choices as they change
-  ["yourName", "themeSel", "potSel", "speedSel", "autoPlay", "muteSfx"].forEach(function (id) {
+  ["yourName", "themeSel", "playerSel", "stakeSel", "speedSel", "autoPlay", "muteSfx"].forEach(function (id) {
     var el = $(id);
     el.addEventListener("change", function () {
       game.readSettings();
       if (id === "themeSel") game.arena.dataset.lcTheme = el.value;
+      if (id === "playerSel" || id === "stakeSel") game.updateEconomy();
     });
   });
 
+  $("topUpBtn").addEventListener("click", function () { setBalance(getBalance() + 1000); game.updateEconomy(); });
   $("startBtn").addEventListener("click", function () { game.start(); });
   $("playAgainBtn").addEventListener("click", function () { game.start(); });
   $("toLobbyBtn").addEventListener("click", function () { game.toLobby(); });
   $("quitBtn").addEventListener("click", function () { game.toLobby(); });
 
-  // draw deck (tap / click)
   game.deckBtn.addEventListener("click", function () { game.humanDraw(); });
 
-  // sfx toggle (arena)
+  $("simBtn").addEventListener("click", function () {
+    game.fast = true;
+    game.exitSpectatorUI();
+    game.setStatus("⏩ Simulating to the end…");
+  });
+  $("watchBtn").addEventListener("click", function () { game.exitSpectatorUI(); });
+
   game.sfxBtn.addEventListener("click", function () {
     game.sfx.muted = !game.sfx.muted;
     game.sfxBtn.setAttribute("aria-pressed", String(!game.sfx.muted));
-    game.sfxBtn.textContent = game.sfx.muted ? "🔇 SFX" : "🔊 SFX";
+    game.sfxBtn.textContent = game.sfx.muted ? "🔇" : "🔊";
     $("muteSfx").checked = game.sfx.muted;
     saveState(Object.assign(loadState(), { muteSfx: game.sfx.muted }));
     if (!game.sfx.muted) game.sfx.tick();
   });
 
-  // auto-play toggle (arena)
   game.autoBtn.addEventListener("click", function () {
     game.autoPlay = !game.autoPlay;
     game.autoBtn.setAttribute("aria-pressed", String(game.autoPlay));
     $("autoPlay").checked = game.autoPlay;
     saveState(Object.assign(loadState(), { autoPlay: game.autoPlay }));
-    // if it's the human's turn right now, draw immediately
     if (game.autoPlay && game._humanCanDraw && game.human && !game.human.currentCard) {
       game.stopTimer();
       game.deckBtn.disabled = true;
       game.deckBtn.querySelector(".deck-sub").textContent = "auto";
       game.setStatus("🤖 Auto-play is drawing for you…");
-      setTimeout(function () { game.humanDrawAuto(); }, 500);
+      setTimeout(function () { if (game.human && !game.human.currentCard) game.doDraw(game.human); }, 500);
     }
   });
-  // helper for the auto toggle mid-turn
-  Game.prototype.humanDrawAuto = function () {
-    if (this.human && !this.human.currentCard) this.doDraw(this.human);
-  };
 
-  // expose for quick manual testing in the console
+  game.fsBtn.addEventListener("click", function () { game.toggleFullscreen(); });
+  ["fullscreenchange", "webkitfullscreenchange"].forEach(function (ev) {
+    document.addEventListener(ev, function () {
+      var on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      game.fsBtn.setAttribute("aria-pressed", String(on));
+      game.fsBtn.textContent = on ? "🗗" : "⛶";
+    });
+  });
+
   window.__lowcard = game;
 })();
