@@ -152,52 +152,38 @@
 .base.green  { grid-area: 1 / 10 / 7 / 16;   background: var(--p-green); }
 .base.yellow { grid-area: 10 / 10 / 16 / 16; background: var(--p-yellow); }
 .base.blue   { grid-area: 10 / 1 / 16 / 7;   background: var(--p-blue); }
-.base .yard {
-  width: 78%; height: 78%;
+.base .yard {                 /* decorative inner panel */
+  width: 76%; height: 76%;
   background: var(--track);
   border-radius: 12px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  place-items: center;
-  gap: 6%;
-  padding: 12%;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.12);
 }
-.base .slot {
-  width: 100%; aspect-ratio: 1; border-radius: 50%;
-  border: 3px solid; box-sizing: border-box;
-  display: grid; place-items: center;
+/* Parking rings are absolutely positioned over the board by JS so a token
+   sits exactly inside its ring. */
+.slot {
+  position: absolute; width: 6.4%; height: 6.4%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%; box-sizing: border-box;
+  border: 3px solid; z-index: 2;
+  background: rgba(255,255,255,.35);
 }
-.base.red    .slot { border-color: var(--p-red); }
-.base.green  .slot { border-color: var(--p-green); }
-.base.yellow .slot { border-color: var(--p-yellow); }
-.base.blue   .slot { border-color: var(--p-blue); }
+.slot.red    { border-color: var(--p-red); }
+.slot.green  { border-color: var(--p-green); }
+.slot.yellow { border-color: var(--p-yellow); }
+.slot.blue   { border-color: var(--p-blue); }
 
-/* ---------- Centre home (four triangles) ---------- */
+/* ---------- Centre home (four triangles via conic-gradient) ---------- */
 .center {
   grid-area: 7 / 7 / 10 / 10;
   position: relative;
-  background: var(--track);
+  background: conic-gradient(from 45deg,
+    var(--p-yellow) 0 90deg,
+    var(--p-blue)   90deg 180deg,
+    var(--p-red)    180deg 270deg,
+    var(--p-green)  270deg 360deg);
+  box-shadow: inset 0 0 0 2px var(--track);
   overflow: hidden;
 }
-.center .tri { position: absolute; width: 0; height: 0; }
-/* Triangles meet at the middle of the centre square */
-.center .tri.red    { left: 0; top: 0; bottom: 0;
-  border-top: calc(var(--c-half)) solid transparent;
-  border-bottom: calc(var(--c-half)) solid transparent;
-  border-left: calc(var(--c-half)) solid var(--p-red); }
-.center .tri.green  { top: 0; left: 0; right: 0;
-  border-left: var(--c-half) solid transparent;
-  border-right: var(--c-half) solid transparent;
-  border-top: var(--c-half) solid var(--p-green); }
-.center .tri.yellow { right: 0; top: 0; bottom: 0;
-  border-top: var(--c-half) solid transparent;
-  border-bottom: var(--c-half) solid transparent;
-  border-right: var(--c-half) solid var(--p-yellow); }
-.center .tri.blue   { bottom: 0; left: 0; right: 0;
-  border-left: var(--c-half) solid transparent;
-  border-right: var(--c-half) solid transparent;
-  border-bottom: var(--c-half) solid var(--p-blue); }
 
 /* ---------- Tokens ---------- */
 /* The .token is absolutely positioned by JS (left/top %). It carries a
@@ -224,6 +210,11 @@
   box-shadow: 0 2px 4px rgba(0,0,0,.35), inset 0 -3px 5px rgba(0,0,0,.28), inset 0 3px 4px rgba(255,255,255,.4);
   pointer-events: none;
 }
+/* set `color` per token so currentColor (used by the neon glow) is the token's hue */
+.token.red    { color: var(--p-red); }
+.token.green  { color: var(--p-green); }
+.token.yellow { color: var(--p-yellow); }
+.token.blue   { color: var(--p-blue); }
 .token.red    .disc { background: var(--p-red); }
 .token.green  .disc { background: var(--p-green); }
 .token.yellow .disc { background: var(--p-yellow); }
