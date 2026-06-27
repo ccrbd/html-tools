@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Sudoku — Play free online | HTML Tools</title>
+  <meta name="description" content="Free offline Sudoku with Easy/Medium/Hard/Expert puzzles, pencil notes, hints, mistake checking, themes, adjustable size and fullscreen. Runs entirely in your browser." />
+  <link rel="stylesheet" href="../../assets/style.css" />
+  <script>
+    (function () {
+      var t = localStorage.getItem("html-tools-theme") ||
+        (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+  <style>
+    /* ---- Board colour themes ---- */
+    .board-wrap{
+      --board-size:460px;
+      --bw: min(94vw, var(--board-size), 72vh);
+      --accent2:#4f6df5;
+      --sel: color-mix(in srgb, var(--accent2) 30%, transparent);
+      --peer: color-mix(in srgb, var(--accent2) 11%, transparent);
+      --same: color-mix(in srgb, var(--accent2) 22%, transparent);
+      --conflict-bg:#ffd9d9; --conflict-fg:#c62828;
+      --grid-line: color-mix(in srgb, var(--text) 22%, transparent);
+      --grid-bold: color-mix(in srgb, var(--text) 55%, transparent);
+    }
+    [data-theme="dark"] .board-wrap{ --conflict-bg:#5a1f1f; --conflict-fg:#ff9a9a; }
+    .board-wrap[data-board="forest"]  { --accent2:#2f9e5b; }
+    .board-wrap[data-board="sunset"]  { --accent2:#e8843a; }
+    .board-wrap[data-board="slate"]   { --accent2:#5f7488; }
+    .board-wrap[data-board="grape"]   { --accent2:#8a63c4; }
+    .board-wrap[data-board="rose"]    { --accent2:#d8567f; }
+
+    /* ---- Setup ---- */
+    .setup{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; align-items:end; }
+    .setup .field label{ display:block; font-size:.82rem; color:var(--text-muted); font-weight:600; margin-bottom:6px; }
+    .setup select{ padding:11px 12px; }
+    .setup .start-cell{ display:flex; align-items:end; }
+    .setup .start-cell .btn{ width:100%; justify-content:center; padding:12px 16px; }
+
+    /* ---- Game layout ---- */
+    .game-wrap{ margin-top:18px; }
+    .info-bar{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      margin-bottom:12px; }
+    .info-bar .chip{ background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
+      padding:6px 12px; font-weight:600; font-size:.9rem; display:inline-flex; gap:7px; align-items:center; }
+    .info-bar .chip b{ font-variant-numeric:tabular-nums; }
+    .info-bar .timer .t{ font-variant-numeric:tabular-nums; font-weight:800; }
+    .info-bar .mistakes.bad b{ color:var(--conflict-fg, #c62828); }
+
+    /* ---- Board ---- */
+    .board-outer{ display:flex; justify-content:center; }
+    .board-wrap{ width:var(--bw); }
+    .board{
+      width:100%; aspect-ratio:1/1; display:grid;
+      grid-template-columns:repeat(9,1fr); grid-template-rows:repeat(9,1fr);
+      background:var(--surface); border:2.5px solid var(--grid-bold); border-radius:8px; overflow:hidden;
+      box-shadow:var(--shadow); touch-action:manipulation; user-select:none; -webkit-user-select:none;
+    }
+    .cell{
+      position:relative; display:grid; place-items:center; cursor:pointer;
+      border-right:1px solid var(--grid-line); border-bottom:1px solid var(--grid-line);
+      background:var(--surface);
+    }
+    .cell.cr9{ border-right:none; } .cell.rb9{ border-bottom:none; }
+    .cell.br{ border-right:2.5px solid var(--grid-bold); }
+    .cell.bb{ border-bottom:2.5px solid var(--grid-bold); }
+    .cell .num{ font-size:calc(var(--bw)/9*.56); line-height:1; font-weight:600; }
+    .cell.given .num{ color:var(--text); font-weight:800; }
+    .cell.user .num{ color:var(--accent2); }
+    .cell.hint .num{ color:#2e9e5b; }
+    .cell .notes{ position:absolute; inset:7%; display:grid;
+      grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); }
+    .cell .notes span{ display:grid; place-items:center; font-size:calc(var(--bw)/9*.23);
+      color:var(--text-muted); line-height:1; }
+
+    /* highlight layers */
+    .cell.peer{ background:var(--peer); }
+    .cell.same{ background:var(--same); }
+    .cell.sel{ background:var(--sel); }
+    .cell.conflict{ background:var(--conflict-bg); }
+    .cell.conflict .num{ color:var(--conflict-fg); }
+    .cell.sel.conflict{ background:var(--conflict-bg); }
+
+    /* ---- Number pad ---- */
+    .pad{ display:grid; grid-template-columns:repeat(9,1fr); gap:6px; margin-top:14px;
+      max-width:var(--bw); margin-left:auto; margin-right:auto; }
+    .pad button{ position:relative; aspect-ratio:1/1.15; border:1px solid var(--border); border-radius:10px;
+      background:var(--surface); color:var(--accent2); font-size:clamp(1.1rem,4.4vw,1.5rem); font-weight:700;
+      cursor:pointer; font-family:inherit; display:grid; place-items:center; transition:background .12s, transform .05s; }
+    .pad button:hover{ background:var(--surface-2); }
+    .pad button:active{ transform:translateY(1px); }
+    .pad button.done{ opacity:.32; pointer-events:none; }
+    .pad button .left{ position:absolute; bottom:2px; right:4px; font-size:.6rem; font-weight:600;
+      color:var(--text-muted); }
+    @media (max-width:480px){ .pad button .left{ display:none; } }
+
+    /* ---- Controls ---- */
+    .controls{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:14px;
+      max-width:var(--bw); margin-left:auto; margin-right:auto; }
+    .controls .btn{ padding:10px 14px; font-size:.9rem; flex:1 1 auto; justify-content:center; min-width:84px; }
+    .controls .btn svg{ width:17px; height:17px; }
+    .controls .btn.on{ background:var(--accent); color:#fff; border-color:var(--accent); }
+    .controls .btn .badge{ font-size:.7rem; opacity:.8; }
+    @media (max-width:480px){ .controls .btn span.lbl{ font-size:.82rem; } }
+
+    .status-line{ text-align:center; font-weight:700; margin-top:14px; min-height:22px; }
+    .status-line .win{ color:#2e9e5b; }
+
+    .records{ display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
+    .records .stat{ min-width:110px; padding:12px 14px; }
+    .records .stat .num{ font-size:1.2rem; font-variant-numeric:tabular-nums; }
+
+    /* ---- Pause overlay ---- */
+    .pause-veil{ position:absolute; inset:0; background:color-mix(in srgb, var(--surface) 86%, transparent);
+      backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); display:none; place-items:center;
+      border-radius:8px; z-index:5; cursor:pointer; }
+    .pause-veil.show{ display:grid; }
+    .pause-veil .msg{ text-align:center; color:var(--text-muted); font-weight:700; }
+    .pause-veil .msg svg{ width:42px; height:42px; display:block; margin:0 auto 8px; }
+
+    /* ---- Fullscreen ---- */
+    .game-wrap:fullscreen{ background:var(--bg); padding:14px; display:flex; flex-direction:column;
+      justify-content:center; overflow:auto; }
+    .game-wrap:fullscreen .records{ display:none; }
+    .game-wrap:fullscreen .board-wrap{ --bw: min(96vw, var(--board-size), 64vh); }
+    .game-wrap.fs-fallback{ position:fixed; inset:0; z-index:40; background:var(--bg); padding:14px;
+      overflow:auto; display:flex; flex-direction:column; justify-content:center; }
+    .game-wrap.fs-fallback .records{ display:none; }
+    .game-wrap.fs-fallback .board-wrap{ --bw: min(96vw, var(--board-size), 64vh); }
+
+    @media (max-width:480px){
+      .controls .btn{ padding:9px 10px; min-width:0; }
+      .controls .btn span.lbl{ display:none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="../../">
+        <span class="logo">&lt;/&gt;</span>
+        <span>HTML Tools</span>
+      </a>
+      <button class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container tool-main">
+    <a class="back-link" href="../../">← All tools</a>
+    <h1>Sudoku</h1>
+    <p class="subtitle">Four difficulty levels, pencil notes, hints and themes. Every puzzle has exactly one solution. Plays fully offline.</p>
+
+    <div class="panel">
+      <div class="setup">
+        <div class="field">
+          <label for="difficulty">Difficulty</label>
+          <select id="difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+            <option value="expert">Expert</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="boardTheme">Theme</label>
+          <select id="boardTheme">
+            <option value="classic" selected>Classic blue</option>
+            <option value="forest">Forest</option>
+            <option value="sunset">Sunset</option>
+            <option value="slate">Slate</option>
+            <option value="grape">Grape</option>
+            <option value="rose">Rose</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sizeSel">Tile size</label>
+          <select id="sizeSel">
+            <option value="380">Small</option>
+            <option value="460" selected>Medium</option>
+            <option value="560">Large</option>
+          </select>
+        </div>
+        <div class="start-cell">
+          <button id="newGame" class="btn btn-primary">＋ New Game</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="game-wrap" id="gameWrap">
+      <div class="info-bar">
+        <span class="chip" id="diffChip">Medium</span>
+        <span class="chip mistakes" id="mistakeChip" style="display:none">Mistakes <b id="mistakeCount">0</b></span>
+        <span class="chip timer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg><span class="t" id="timer">0:00</span></span>
+      </div>
+
+      <div class="board-outer">
+        <div class="board-wrap" id="boardWrap" data-board="classic">
+          <div class="board" id="board"></div>
+          <div class="pause-veil" id="pauseVeil">
+            <div class="msg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+              Paused — tap to resume
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pad" id="pad"></div>
+
+      <div class="controls">
+        <button class="btn" id="undoBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg><span class="lbl">Undo</span></button>
+        <button class="btn" id="eraseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16a2 2 0 0 1 0-3l8-8a2 2 0 0 1 3 0l6 6a2 2 0 0 1 0 3l-6 6"/><path d="M18 13 11 6"/></svg><span class="lbl">Erase</span></button>
+        <button class="btn" id="notesBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="lbl">Notes</span> <span class="badge" id="notesState">Off</span></button>
+        <button class="btn" id="hintBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg><span class="lbl">Hint</span></button>
+        <button class="btn" id="checkBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Check</span></button>
+        <button class="btn" id="pauseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><span class="lbl">Pause</span></button>
+        <button class="btn" id="fsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span class="lbl">Full</span></button>
+      </div>
+
+      <div class="status-line" id="status">Press <b>New Game</b> to start.</div>
+
+      <div class="records">
+        <div class="stat"><div class="num" id="recBest">—</div><div class="label">Best (this level)</div></div>
+        <div class="stat"><div class="num" id="recWon">0</div><div class="label">Puzzles solved</div></div>
+      </div>
+    </div>
+
+    <div class="howto">
+      <h2>How to use</h2>
+      <ol>
+        <li>Pick a <b>difficulty</b>, <b>theme</b> and <b>tile size</b>, then press <b>New Game</b>.</li>
+        <li><b>Tap a cell</b>, then tap a number (or use your keyboard 1–9). Same numbers and the active row, column and box are highlighted to help you scan.</li>
+        <li>Turn on <b>Notes</b> to pencil in candidates. <b>Check</b> flags conflicting numbers in red. <b>Hint</b> fills one correct cell when you're stuck.</li>
+        <li>Use <b>Pause</b> to hide the board and stop the clock, and <b>Full</b> for a distraction-free fullscreen board. Your game and best times are saved on this device.</li>
+      </ol>
+      <p class="note">100% offline — every puzzle is generated locally and has a single unique solution.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      Built for fun · Runs entirely in your browser ·
+      <a href="https://github.com/ccrbd/HTML-Tools" target="_blank" rel="noopener">Source on GitHub</a>
+    </div>
+  </footer>
+
+  <script src="../../assets/theme.js"></script>
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
