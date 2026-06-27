@@ -5,6 +5,12 @@
    chrome; the game table carries its own theme palette.
    ============================================================ */
 
+/* The [hidden] attribute must always win, even over rules that set a
+   display value (e.g. .btn, .result-overlay). Without this, overlays
+   and the Pass button stay visible because their `display` beats the
+   user-agent `[hidden] { display: none }` rule. */
+[hidden] { display: none !important; }
+
 /* ---------- Lobby ---------- */
 .lobby-grid {
   display: grid;
