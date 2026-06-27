@@ -535,6 +535,155 @@
   }
 
   /* =========================================================================
+     4b. SOUND — all audio is SYNTHESISED with the Web Audio API.
+     No audio files: keeps the repo tiny, works fully offline, and is
+     inherently royalty-free. SFX are one-shot tones/noise; the background
+     music is a gentle generative arpeggio over a calm chord loop.
+     ========================================================================= */
+  const Sound = {
+    ctx: null, master: null, sfxBus: null, musicBus: null,
+    sfxOn: true, musicOn: false,
+    _timer: null, _step: 0, _next: 0,
+    STEP: 0.38,                                  // seconds per arpeggio step (~78 BPM)
+    PROG: [                                       // C – Am – F – G (MIDI notes)
+      [60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]
+    ],
+
+    ensure: function () {
+      if (this.ctx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain(); this.master.gain.value = 0.9;
+      this.master.connect(this.ctx.destination);
+      this.sfxBus = this.ctx.createGain(); this.sfxBus.gain.value = 0.9; this.sfxBus.connect(this.master);
+      this.musicBus = this.ctx.createGain(); this.musicBus.gain.value = 0.0001; this.musicBus.connect(this.master);
+    },
+    resume: function () { if (this.ctx && this.ctx.state === "suspended") this.ctx.resume(); },
+
+    // A single enveloped oscillator note (optionally gliding in pitch).
+    tone: function (freq, dur, type, when, gain, glideTo, bus) {
+      if (!this.ctx) return;
+      const t = when || this.ctx.currentTime;
+      const o = this.ctx.createOscillator();
+      o.type = type || "sine";
+      o.frequency.setValueAtTime(freq, t);
+      if (glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, t + dur);
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain == null ? 0.3 : gain, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(bus || this.sfxBus);
+      o.start(t); o.stop(t + dur + 0.03);
+    },
+    // A short filtered white-noise burst (clicks, rattles, impacts).
+    noise: function (dur, when, gain, freq, q) {
+      if (!this.ctx) return;
+      const t = when || this.ctx.currentTime;
+      const n = Math.floor(this.ctx.sampleRate * dur);
+      const buf = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) data[i] = Math.random() * 2 - 1;
+      const src = this.ctx.createBufferSource(); src.buffer = buf;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(gain || 0.2, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      let node = src;
+      if (freq) {
+        const f = this.ctx.createBiquadFilter();
+        f.type = "bandpass"; f.frequency.value = freq; f.Q.value = q || 1;
+        src.connect(f); node = f;
+      }
+      node.connect(g).connect(this.sfxBus);
+      src.start(t); src.stop(t + dur + 0.03);
+    },
+
+    /* ---- one-shot SFX ---- */
+    roll: function () {                            // dice rattle
+      if (!this.sfxOn) { return; } this.ensure(); this.resume(); if (!this.ctx) return;
+      const t0 = this.ctx.currentTime;
+      for (let i = 0; i < 5; i++) this.noise(0.05, t0 + i * 0.08, 0.16, 480 + Math.random() * 900, 2);
+    },
+    land: function () {                            // dice settles
+      if (!this.sfxOn || !this.ctx) return;
+      const t = this.ctx.currentTime;
+      this.noise(0.09, t, 0.22, 240, 1.4);
+      this.tone(170, 0.13, "square", t, 0.12, 120);
+    },
+    move: function () {                            // token hop
+      if (!this.sfxOn) { return; } this.ensure(); this.resume(); if (!this.ctx) return;
+      this.tone(520, 0.12, "triangle", this.ctx.currentTime, 0.22, 740);
+    },
+    capture: function () {                         // send opponent home
+      if (!this.sfxOn) { return; } this.ensure(); this.resume(); if (!this.ctx) return;
+      const t = this.ctx.currentTime;
+      this.tone(440, 0.3, "sawtooth", t, 0.24, 90);
+      this.noise(0.24, t, 0.16, 900, 0.7);
+    },
+    homeIn: function () {                           // token reaches centre
+      if (!this.sfxOn) { return; } this.ensure(); this.resume(); if (!this.ctx) return;
+      const t = this.ctx.currentTime;
+      [523, 659, 784].forEach(function (f, i) { Sound.tone(f, 0.2, "sine", t + i * 0.1, 0.24); });
+    },
+    win: function () {                             // victory fanfare
+      if (!this.sfxOn) { return; } this.ensure(); this.resume(); if (!this.ctx) return;
+      const t = this.ctx.currentTime;
+      [523, 659, 784, 1046].forEach(function (f, i) { Sound.tone(f, 0.32, "triangle", t + i * 0.12, 0.26); });
+    },
+    click: function () {
+      if (!this.sfxOn || !this.ctx) return;
+      this.tone(330, 0.06, "square", this.ctx.currentTime, 0.1);
+    },
+
+    /* ---- generative background music ---- */
+    musicStart: function () {
+      this.ensure(); this.resume(); if (!this.ctx) return;
+      this.musicOn = true;
+      this.musicBus.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.musicBus.gain.setTargetAtTime(0.13, this.ctx.currentTime, 0.6);   // fade in
+      this._step = 0; this._next = this.ctx.currentTime + 0.12;
+      const self = this;
+      if (this._timer) clearInterval(this._timer);
+      this._timer = setInterval(function () { self._schedule(); }, 25);
+    },
+    musicStop: function () {
+      this.musicOn = false;
+      if (this._timer) { clearInterval(this._timer); this._timer = null; }
+      if (this.ctx) this.musicBus.gain.setTargetAtTime(0.0001, this.ctx.currentTime, 0.4);
+    },
+    _schedule: function () {                        // look-ahead scheduler
+      if (!this.ctx) return;
+      while (this._next < this.ctx.currentTime + 0.1) {
+        this._playStep(this._step, this._next);
+        this._next += this.STEP;
+        this._step = (this._step + 1) % (this.PROG.length * 8);
+      }
+    },
+    _playStep: function (step, t) {
+      const chord = this.PROG[Math.floor(step / 8) % this.PROG.length];
+      const inBar = step % 8;
+      // soft arpeggio (an octave up in the back half of each bar)
+      this._mnote(chord[inBar % chord.length] + (inBar >= 4 ? 12 : 0), t, 0.36, "triangle", 0.16);
+      if (inBar === 0) {                            // bass + pad on the down-beat
+        this._mnote(chord[0] - 12, t, 1.45, "sine", 0.2);
+        this._mnote(chord[0], t, 1.45, "sine", 0.05);
+        this._mnote(chord[1], t, 1.45, "sine", 0.045);
+      }
+    },
+    _mnote: function (midi, t, dur, type, gain) {
+      const f = 440 * Math.pow(2, (midi - 69) / 12);
+      const o = this.ctx.createOscillator(); o.type = type; o.frequency.value = f;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain, t + 0.06);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      const lp = this.ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1900;
+      o.connect(g).connect(lp).connect(this.musicBus);
+      o.start(t); o.stop(t + dur + 0.05);
+    }
+  };
+
+  /* =========================================================================
      5. UI / GLUE — lobby, dice, input, persistence
      ========================================================================= */
   const LS_KEY = "html-tools-ludo";
@@ -549,6 +698,7 @@
     turnCard: $("turnCard"), turnDot: $("turnDot"),
     turnName: $("turnName"), turnSub: $("turnSub"),
     status: $("status"), newBtn: $("newBtn"), fsBtn: $("fsBtn"),
+    soundBtn: $("soundBtn"), musicBtn: $("musicBtn"),
     winModal: $("winModal"), winEmoji: $("winEmoji"),
     winTitle: $("winTitle"), winSub: $("winSub"), winAgain: $("winAgain")
   };
@@ -583,7 +733,9 @@
       color: chosenColor,
       numBots: els.numBots.value,
       theme: els.boardTheme.value,
-      diffs: diffs
+      diffs: diffs,
+      sfx: Sound.sfxOn,
+      music: Sound.musicOn
     }));
   }
 
@@ -695,6 +847,7 @@
 
     onRoll: function (value, after) {
       // Shake the dice, flash a few faces, then settle on the real value.
+      Sound.roll();
       els.dice.classList.add("rolling");
       let ticks = 6;
       const iv = setInterval(function () {
@@ -703,6 +856,7 @@
           clearInterval(iv);
           drawDice(value);
           els.dice.classList.remove("rolling");
+          Sound.land();
           els.status.textContent = COLOR_NAME[game.current().color] + " rolled " + value + ".";
           setTimeout(after, 250);
         }
@@ -710,10 +864,15 @@
     },
 
     onMove: function (move, captured, done) {
+      // Pick the most salient sound for this move.
+      if (captured.length) Sound.capture();
+      else if (move.to === HOME_POS) Sound.homeIn();
+      else Sound.move();
       renderer.animateMove(move, done);
     },
 
     onWin: function (color) {
+      Sound.win();
       renderPlayers();
       const youWon = !game.players.find(function (p) { return p.color === color; }).isBot;
       els.winEmoji.textContent = youWon ? "🏆" : "🤖";
@@ -799,6 +958,54 @@
     exitFs();
   });
 
+  /* ---- audio toggles + first-gesture priming ---- */
+  let pendingMusic = false;                 // music wanted, waiting for a user gesture
+
+  function updateAudioButtons() {
+    els.soundBtn.innerHTML = (Sound.sfxOn ? "🔊" : "🔇") + " Sound";
+    els.soundBtn.classList.toggle("off", !Sound.sfxOn);
+    els.musicBtn.innerHTML = (Sound.musicOn ? "🎵" : "🎶") + " Music";
+    els.musicBtn.classList.toggle("off", !Sound.musicOn);
+  }
+  els.soundBtn.addEventListener("click", function () {
+    Sound.sfxOn = !Sound.sfxOn;
+    if (Sound.sfxOn) { Sound.ensure(); Sound.resume(); Sound.click(); }
+    updateAudioButtons(); savePrefs();
+  });
+  els.musicBtn.addEventListener("click", function () {
+    if (Sound.musicOn) Sound.musicStop();
+    else Sound.musicStart();
+    pendingMusic = false;
+    updateAudioButtons(); savePrefs();
+  });
+
+  // Browsers only allow audio after a user gesture; prime it on the first one.
+  function primeAudio() {
+    Sound.ensure(); Sound.resume();
+    if (pendingMusic) { pendingMusic = false; Sound.musicStart(); updateAudioButtons(); }
+  }
+  document.addEventListener("pointerdown", primeAudio);
+  document.addEventListener("keydown", primeAudio);
+
+  /* ---- keyboard shortcuts ---- */
+  document.addEventListener("keydown", function (e) {
+    const tag = (e.target && e.target.tagName) || "";
+    if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA") return;  // don't hijack the lobby
+    const k = e.key.toLowerCase();
+
+    if (e.code === "Space" || e.key === " ") { e.preventDefault(); rollNow(); return; }
+    if (k === "f") { e.preventDefault(); els.fsBtn.click(); return; }
+    if (k === "m") { els.musicBtn.click(); return; }
+    if (k === "s") { els.soundBtn.click(); return; }
+    if (k === "n") { els.newBtn.click(); return; }
+    if (k >= "1" && k <= "4") {
+      if (game && !game.over && game.isHumanTurn() && game.phase === "move") {
+        const t = game.movable[parseInt(k, 10) - 1];
+        if (t) { e.preventDefault(); game.humanMove(t.id); }
+      }
+    }
+  });
+
   // Fullscreen (with a graceful fallback when the API is unavailable).
   function exitFs() {
     els.gameWrap.classList.remove("fs-fallback");
@@ -823,6 +1030,12 @@
     if (prefs.theme) els.boardTheme.value = prefs.theme;
     rebuildBotDiffs(prefs.diffs);
     drawDice(6);
+
+    // Restore audio prefs. SFX default ON; music defaults OFF and (if it was on
+    // last time) starts on the first user gesture, per browser autoplay rules.
+    Sound.sfxOn = prefs.sfx !== false;
+    if (prefs.music) { Sound.musicOn = true; pendingMusic = true; }
+    updateAudioButtons();
   })();
 
   // Expose internals for the (Node) test harness — no effect in the browser UI.
