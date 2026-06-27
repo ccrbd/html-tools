@@ -123,13 +123,19 @@
 
     /* ---- Fullscreen ---- */
     .game-wrap:fullscreen{ background:var(--bg); padding:14px; display:flex; flex-direction:column;
-      justify-content:center; overflow:auto; }
+      justify-content:center; align-items:center; overflow:auto; }
     .game-wrap:fullscreen .records{ display:none; }
-    .game-wrap:fullscreen .board-wrap{ --bw: min(96vw, var(--board-size), 64vh); }
+    .game-wrap:fullscreen .board-wrap{ --bw: min(94vw, 70vh, 720px); }
     .game-wrap.fs-fallback{ position:fixed; inset:0; z-index:40; background:var(--bg); padding:14px;
-      overflow:auto; display:flex; flex-direction:column; justify-content:center; }
+      overflow:auto; display:flex; flex-direction:column; justify-content:center; align-items:center; }
     .game-wrap.fs-fallback .records{ display:none; }
-    .game-wrap.fs-fallback .board-wrap{ --bw: min(96vw, var(--board-size), 64vh); }
+    .game-wrap.fs-fallback .board-wrap{ --bw: min(94vw, 68vh, 720px); }
+    /* keep the bars aligned to the board width in fullscreen */
+    .game-wrap:fullscreen .info-bar, .game-wrap.fs-fallback .info-bar,
+    .game-wrap:fullscreen .pad, .game-wrap.fs-fallback .pad,
+    .game-wrap:fullscreen .controls, .game-wrap.fs-fallback .controls,
+    .game-wrap:fullscreen .status-line, .game-wrap.fs-fallback .status-line{
+      width:100%; max-width:min(94vw, 760px); margin-left:auto; margin-right:auto; }
 
     @media (max-width:480px){
       .controls .btn{ padding:9px 10px; min-width:0; }
@@ -235,13 +241,13 @@
       <div class="pad" id="pad"></div>
 
       <div class="controls">
-        <button class="btn" id="undoBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg><span class="lbl">Undo</span></button>
-        <button class="btn" id="eraseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16a2 2 0 0 1 0-3l8-8a2 2 0 0 1 3 0l6 6a2 2 0 0 1 0 3l-6 6"/><path d="M18 13 11 6"/></svg><span class="lbl">Erase</span></button>
-        <button class="btn" id="notesBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="lbl">Notes</span> <span class="badge" id="notesState">Off</span></button>
-        <button class="btn" id="hintBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg><span class="lbl">Hint</span></button>
-        <button class="btn" id="checkBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Check</span></button>
-        <button class="btn" id="pauseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><span class="lbl">Pause</span></button>
-        <button class="btn" id="fsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span class="lbl">Full</span></button>
+        <button class="btn" id="undoBtn" title="Undo (U or Ctrl+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg><span class="lbl">Undo</span></button>
+        <button class="btn" id="eraseBtn" title="Erase (E or Delete)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16a2 2 0 0 1 0-3l8-8a2 2 0 0 1 3 0l6 6a2 2 0 0 1 0 3l-6 6"/><path d="M18 13 11 6"/></svg><span class="lbl">Erase</span></button>
+        <button class="btn" id="notesBtn" title="Notes / pencil mode (N)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="lbl">Notes</span> <span class="badge" id="notesState">Off</span></button>
+        <button class="btn" id="hintBtn" title="Hint (H)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg><span class="lbl">Hint</span></button>
+        <button class="btn" id="checkBtn" title="Toggle mistake checking (C)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="lbl">Check</span></button>
+        <button class="btn" id="pauseBtn" title="Pause (P or Space)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><span class="lbl">Pause</span></button>
+        <button class="btn" id="fsBtn" title="Fullscreen (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span class="lbl">Full</span></button>
       </div>
 
       <div class="status-line" id="status">Press <b>New Game</b> to start.</div>
@@ -259,6 +265,7 @@
         <li><b>Tap a cell</b>, then tap a number (or use your keyboard 1–9). Same numbers and the active row, column and box are highlighted to help you scan.</li>
         <li>Turn on <b>Notes</b> to pencil in candidates. <b>Check</b> flags conflicting numbers in red. <b>Hint</b> fills one correct cell when you're stuck.</li>
         <li>Use <b>Pause</b> to hide the board and stop the clock, and <b>Full</b> for a distraction-free fullscreen board. Your game and best times are saved on this device.</li>
+        <li><b>Keyboard:</b> type a digit to fill (1–9, and A–G on 16×16), arrows to move, Delete to erase. Shortcuts: <b>F</b> fullscreen, <b>C</b> check, <b>H</b> hint, <b>N</b> notes, <b>U</b> undo, <b>E</b> erase, <b>P</b>/Space pause. (On 16×16, A–G are digits, so those letter shortcuts give way to number entry.)</li>
       </ol>
       <p class="note">100% offline — every puzzle is generated locally and has a single unique solution.</p>
     </div>

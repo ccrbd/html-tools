@@ -308,6 +308,11 @@
   }
   function fallbackFS() { $("gameWrap").classList.toggle("fs-fallback"); }
 
+  /* ---------- Shared toggles (buttons + keyboard) ---------- */
+  function toggleNotes() { if (!G || G.won || G.paused) return; G.notesMode = !G.notesMode; render(); }
+  function toggleCheck() { if (!G) return; G.check = !G.check; prefs.check = G.check; savePrefs(); render(); }
+  function togglePause() { if (!G || G.won) return; setPaused(!G.paused); }
+
   /* ---------- New game ---------- */
   function startNew() {
     prefs.difficulty = elDiff.value; prefs.grid = elGrid.value; savePrefs();
@@ -328,9 +333,9 @@
   $("undoBtn").addEventListener("click", undo);
   $("eraseBtn").addEventListener("click", eraseCell);
   $("hintBtn").addEventListener("click", hint);
-  $("notesBtn").addEventListener("click", function () { G.notesMode = !G.notesMode; render(); });
-  $("checkBtn").addEventListener("click", function () { G.check = !G.check; prefs.check = G.check; savePrefs(); render(); });
-  $("pauseBtn").addEventListener("click", function () { setPaused(!G.paused); });
+  $("notesBtn").addEventListener("click", toggleNotes);
+  $("checkBtn").addEventListener("click", toggleCheck);
+  $("pauseBtn").addEventListener("click", togglePause);
   $("fsBtn").addEventListener("click", toggleFullscreen);
   $("pauseVeil").addEventListener("click", function () { setPaused(false); });
 
@@ -343,20 +348,36 @@
   document.addEventListener("keydown", function (e) {
     if (!G) return;
     if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
-    var k = e.key;
-    var d = keyToDigit(k, G.cfg.N);
-    if (d) { inputDigit(d); e.preventDefault(); }
-    else if (k === "Backspace" || k === "Delete" || k === "0") { eraseCell(); e.preventDefault(); }
-    else if (k === "n" || k === "N") { G.notesMode = !G.notesMode; render(); }
-    else if (k === " ") { setPaused(!G.paused); e.preventDefault(); }
-    else if (k.indexOf("Arrow") === 0 && G.selected >= 0) {
-      var N = G.cfg.N, r = G.selected / N | 0, c = G.selected % N;
+    var k = e.key, N = G.cfg.N;
+
+    // Ctrl/Cmd shortcuts (and let the browser keep the rest)
+    if (e.ctrlKey || e.metaKey) {
+      if (k === "z" || k === "Z") { undo(); e.preventDefault(); }
+      return;
+    }
+    // Digit entry takes priority — keeps A–G working as digits on 16×16.
+    var d = keyToDigit(k, N);
+    if (d) { inputDigit(d); e.preventDefault(); return; }
+
+    if (k === "Backspace" || k === "Delete" || k === "0") { eraseCell(); e.preventDefault(); return; }
+    if (k === " ") { togglePause(); e.preventDefault(); return; }
+    if (k.indexOf("Arrow") === 0 && G.selected >= 0) {
+      var r = G.selected / N | 0, c = G.selected % N;
       if (k === "ArrowUp") r = (r + N - 1) % N;
       if (k === "ArrowDown") r = (r + 1) % N;
       if (k === "ArrowLeft") c = (c + N - 1) % N;
       if (k === "ArrowRight") c = (c + 1) % N;
-      selectCell(r * N + c); e.preventDefault();
+      selectCell(r * N + c); e.preventDefault(); return;
     }
+    // Letter shortcuts — only fire when the letter isn't a digit on this grid.
+    var lk = k.length === 1 ? k.toLowerCase() : k;
+    if (lk === "e") eraseCell();
+    else if (lk === "n") toggleNotes();
+    else if (lk === "h") hint();
+    else if (lk === "u") undo();
+    else if (lk === "c") toggleCheck();
+    else if (lk === "p") togglePause();
+    else if (lk === "f") { toggleFullscreen(); e.preventDefault(); }
   });
 
   document.addEventListener("visibilitychange", function () {

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Ludo — Play vs Bots | HTML Tools</title>
+  <meta name="description" content="A modern, responsive, turn-based Ludo game. Play against 1–3 AI bots with Easy/Medium/Hard difficulty, four visual themes, touch-friendly controls. Runs entirely in your browser." />
+
+  <!-- Shared site styles (header, buttons, panels, how-to) -->
+  <link rel="stylesheet" href="../../assets/style.css" />
+  <!-- This tool's own styles -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Set the site light/dark theme before paint to avoid a flash -->
+  <script>
+    (function () {
+      var t = localStorage.getItem("html-tools-theme") ||
+        (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+</head>
+<body>
+  <!-- ================= Shared site header ================= -->
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="../../">
+        <span class="logo">&lt;/&gt;</span>
+        <span>HTML Tools</span>
+      </a>
+      <button class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container tool-main">
+    <a class="back-link" href="../../">← All tools</a>
+    <h1>Ludo</h1>
+    <p class="subtitle">Roll, race and capture your way home. Play against 1–3 bots with adjustable difficulty and four hand-made board themes — all offline, on your device.</p>
+
+    <!-- ================= LOBBY (setup) ================= -->
+    <section class="panel lobby" id="lobby">
+      <div class="lobby-grid">
+        <!-- Your colour -->
+        <div class="field">
+          <label>Your colour</label>
+          <div class="color-pick" id="colorPick" role="radiogroup" aria-label="Your colour">
+            <button class="color-chip" data-color="red"    role="radio" aria-checked="true"  aria-label="Red"><span></span></button>
+            <button class="color-chip" data-color="green"  role="radio" aria-checked="false" aria-label="Green"><span></span></button>
+            <button class="color-chip" data-color="yellow" role="radio" aria-checked="false" aria-label="Yellow"><span></span></button>
+            <button class="color-chip" data-color="blue"   role="radio" aria-checked="false" aria-label="Blue"><span></span></button>
+          </div>
+        </div>
+
+        <!-- Number of bots -->
+        <div class="field">
+          <label for="numBots">Opponents (bots)</label>
+          <select id="numBots">
+            <option value="1">1 bot — duel</option>
+            <option value="2">2 bots</option>
+            <option value="3" selected>3 bots — full board</option>
+          </select>
+        </div>
+
+        <!-- Theme -->
+        <div class="field">
+          <label for="boardTheme">Visual theme</label>
+          <select id="boardTheme">
+            <option value="classic" selected>Classic Nostalgia</option>
+            <option value="cyberpunk">Cyberpunk / Neon Night</option>
+            <option value="pastel">Pastel Dreams</option>
+            <option value="wooden">Wooden Classic</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Per-bot difficulty (filled in by JS to match the bot count) -->
+      <div class="field bots-field">
+        <label>Bot difficulty</label>
+        <div class="bot-diffs" id="botDiffs"></div>
+      </div>
+
+      <button id="startBtn" class="btn btn-primary lobby-start">▶ Start game</button>
+    </section>
+
+    <!-- ================= GAME ================= -->
+    <section class="game-wrap" id="gameWrap" hidden>
+      <!-- Player status strip -->
+      <div class="players" id="players"></div>
+
+      <div class="board-stage">
+        <!-- The board itself. data-palette swaps the whole colour scheme. -->
+        <div class="board" id="board" data-palette="classic" aria-label="Ludo board"></div>
+
+        <!-- Side rail: dice + turn + controls -->
+        <aside class="rail">
+          <div class="turn-card" id="turnCard">
+            <div class="turn-dot" id="turnDot"></div>
+            <div>
+              <div class="turn-name" id="turnName">Red</div>
+              <div class="turn-sub" id="turnSub">Your turn</div>
+            </div>
+          </div>
+
+          <!-- The dice: a real button so it is keyboard + touch accessible -->
+          <button class="dice" id="dice" aria-label="Roll the dice">
+            <div class="dice-face" id="diceFace" data-val="6">
+              <span></span><span></span><span></span>
+              <span></span><span></span><span></span>
+              <span></span><span></span><span></span>
+            </div>
+          </button>
+          <div class="dice-hint" id="diceHint">Tap the dice to roll</div>
+
+          <div class="rail-controls">
+            <button class="btn" id="newBtn" title="Back to setup">⟲ New game</button>
+            <button class="btn" id="fsBtn" title="Fullscreen">⛶ Fullscreen</button>
+          </div>
+        </aside>
+      </div>
+
+      <div class="status-line" id="status">Tap the dice to begin.</div>
+    </section>
+
+    <!-- ================= How to use ================= -->
+    <div class="howto">
+      <h2>How to use</h2>
+      <ol>
+        <li>In the lobby pick <b>your colour</b>, how many <b>bots</b> to face, each bot's <b>difficulty</b>, and a <b>visual theme</b>, then press <b>Start game</b>.</li>
+        <li>On your turn, <b>tap the dice</b>. Tokens you can move will <b>glow and pulse</b> — tap one to move it.</li>
+        <li>You need a <b>6</b> to bring a token out of its base. Landing on an opponent (off a star/safe square) <b>sends it home</b>.</li>
+        <li>Rolling a <b>6</b> or making a <b>capture</b> earns an <b>extra turn</b>. Three 6s in a row forfeits the turn.</li>
+        <li>First player to get <b>all four tokens</b> into the centre wins. Your last setup is remembered on this device.</li>
+      </ol>
+      <p class="note">100% offline — no accounts, no tracking, nothing leaves your browser.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      Built for fun · Runs entirely in your browser ·
+      <a href="https://github.com/ccrbd/HTML-Tools" target="_blank" rel="noopener">Source on GitHub</a>
+    </div>
+  </footer>
+
+  <!-- Winner modal -->
+  <div class="modal" id="winModal" hidden>
+    <div class="modal-card">
+      <div class="win-emoji" id="winEmoji">🏆</div>
+      <h3 id="winTitle">Red wins!</h3>
+      <p id="winSub">All four tokens are home.</p>
+      <button class="btn btn-primary" id="winAgain">Play again</button>
+    </div>
+  </div>
+
+  <!-- Shared theme toggle, then this tool's engine -->
+  <script src="../../assets/theme.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

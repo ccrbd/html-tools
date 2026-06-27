@@ -1,0 +1,398 @@
+/* ============================================================
+   Ludo — tool-specific styles
+   The page chrome (header/footer/buttons/panels) comes from the
+   shared ../../assets/style.css. Here we add the lobby, the board,
+   the tokens, the dice, and the four swappable visual THEMES.
+
+   Theming model
+   -------------
+   • Site light/dark  -> [data-theme] on <html>  (shared theme.js)
+   • Board palette     -> [data-palette] on .board (this file)
+     Each palette only needs to redefine a handful of CSS variables;
+     every board element reads those variables, so swapping the
+     attribute restyles the entire board instantly.
+   ============================================================ */
+
+/* ---------- Lobby ---------- */
+.lobby-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
+}
+.lobby .field label {
+  display: block;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.bots-field { margin-top: 16px; }
+.lobby-start { margin-top: 20px; width: 100%; justify-content: center; padding: 13px; font-size: 1rem; }
+
+/* Colour picker chips — each at least 44px for comfortable tapping */
+.color-pick { display: flex; gap: 10px; }
+.color-chip {
+  width: 46px; height: 46px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  cursor: pointer;
+  display: grid; place-items: center;
+  transition: border-color .15s ease, transform .05s ease;
+}
+.color-chip span {
+  width: 26px; height: 26px; border-radius: 50%;
+  box-shadow: inset 0 -3px 5px rgba(0,0,0,.25);
+}
+.color-chip[data-color="red"]    span { background: #e63d34; }
+.color-chip[data-color="green"]  span { background: #2ea04f; }
+.color-chip[data-color="yellow"] span { background: #f4c220; }
+.color-chip[data-color="blue"]   span { background: #2f6bd4; }
+.color-chip[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.color-chip:active { transform: scale(.94); }
+
+/* Per-bot difficulty rows */
+.bot-diffs { display: grid; gap: 10px; }
+.bot-diff {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 8px 12px;
+}
+.bot-diff .badge {
+  width: 26px; height: 26px; border-radius: 50%; flex: none;
+  box-shadow: inset 0 -3px 5px rgba(0,0,0,.25);
+}
+.bot-diff .who { font-weight: 700; font-size: .92rem; flex: 1; min-width: 0; }
+.bot-diff select { max-width: 160px; }
+
+/* ============================================================
+   GAME
+   ============================================================ */
+.game-wrap { margin-top: 6px; }
+
+/* Player status strip above the board */
+.players { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 14px; }
+.pcard {
+  display: flex; align-items: center; gap: 9px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 7px 12px; min-width: 116px;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.pcard .dot { width: 16px; height: 16px; border-radius: 50%; flex: none;
+  box-shadow: inset 0 -2px 3px rgba(0,0,0,.3); }
+.pcard .pinfo { min-width: 0; }
+.pcard .pname { font-weight: 700; font-size: .9rem; line-height: 1.1; }
+.pcard .pmeta { font-size: .72rem; color: var(--text-muted); }
+.pcard.turn { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); transform: translateY(-2px); }
+.pcard.done { opacity: .55; }
+.pcard .home-pips { display: flex; gap: 3px; margin-top: 3px; }
+.pcard .home-pips i { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+.pcard .home-pips i.on { background: currentColor; }
+
+/* Board + side rail layout */
+.board-stage {
+  display: flex; gap: 18px; align-items: flex-start;
+  justify-content: center; flex-wrap: wrap;
+}
+
+/* ---------- The board ---------- */
+.board {
+  position: relative;
+  width: min(92vw, 70vh, 560px);
+  aspect-ratio: 1 / 1;
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  grid-template-rows: repeat(15, 1fr);
+  border-radius: 16px;
+  padding: 8px;
+  background: var(--board-shell);
+  box-shadow: var(--shadow), 0 10px 30px rgba(0,0,0,.18);
+  user-select: none; -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+/* Generic arm/track cell */
+.cell {
+  position: relative;
+  background: var(--track);
+  border: 1px solid var(--board-line);
+}
+/* coloured home-stretch lanes + coloured start squares */
+.cell.home-red    { background: var(--p-red); }
+.cell.home-green  { background: var(--p-green); }
+.cell.home-yellow { background: var(--p-yellow); }
+.cell.home-blue   { background: var(--p-blue); }
+.cell.start-red    { background: var(--p-red); }
+.cell.start-green  { background: var(--p-green); }
+.cell.start-yellow { background: var(--p-yellow); }
+.cell.start-blue   { background: var(--p-blue); }
+
+/* Safe-square star */
+.cell.safe::after {
+  content: "★";
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-size: .62em; line-height: 1;
+  color: var(--star); opacity: .85;
+}
+/* An arrow on the start squares to show the entry direction */
+.cell.start-red::before, .cell.start-green::before,
+.cell.start-yellow::before, .cell.start-blue::before {
+  content: ""; position: absolute; inset: 30%;
+  border-radius: 2px; background: rgba(255,255,255,.55);
+}
+
+/* ---------- Corner bases ---------- */
+.base {
+  border-radius: 14px; margin: 3px;
+  display: grid; place-items: center;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.25);
+}
+.base.red    { grid-area: 1 / 1 / 7 / 7;     background: var(--p-red); }
+.base.green  { grid-area: 1 / 10 / 7 / 16;   background: var(--p-green); }
+.base.yellow { grid-area: 10 / 10 / 16 / 16; background: var(--p-yellow); }
+.base.blue   { grid-area: 10 / 1 / 16 / 7;   background: var(--p-blue); }
+.base .yard {
+  width: 78%; height: 78%;
+  background: var(--track);
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  place-items: center;
+  gap: 6%;
+  padding: 12%;
+}
+.base .slot {
+  width: 100%; aspect-ratio: 1; border-radius: 50%;
+  border: 3px solid; box-sizing: border-box;
+  display: grid; place-items: center;
+}
+.base.red    .slot { border-color: var(--p-red); }
+.base.green  .slot { border-color: var(--p-green); }
+.base.yellow .slot { border-color: var(--p-yellow); }
+.base.blue   .slot { border-color: var(--p-blue); }
+
+/* ---------- Centre home (four triangles) ---------- */
+.center {
+  grid-area: 7 / 7 / 10 / 10;
+  position: relative;
+  background: var(--track);
+  overflow: hidden;
+}
+.center .tri { position: absolute; width: 0; height: 0; }
+/* Triangles meet at the middle of the centre square */
+.center .tri.red    { left: 0; top: 0; bottom: 0;
+  border-top: calc(var(--c-half)) solid transparent;
+  border-bottom: calc(var(--c-half)) solid transparent;
+  border-left: calc(var(--c-half)) solid var(--p-red); }
+.center .tri.green  { top: 0; left: 0; right: 0;
+  border-left: var(--c-half) solid transparent;
+  border-right: var(--c-half) solid transparent;
+  border-top: var(--c-half) solid var(--p-green); }
+.center .tri.yellow { right: 0; top: 0; bottom: 0;
+  border-top: var(--c-half) solid transparent;
+  border-bottom: var(--c-half) solid transparent;
+  border-right: var(--c-half) solid var(--p-yellow); }
+.center .tri.blue   { bottom: 0; left: 0; right: 0;
+  border-left: var(--c-half) solid transparent;
+  border-right: var(--c-half) solid transparent;
+  border-bottom: var(--c-half) solid var(--p-blue); }
+
+/* ---------- Tokens ---------- */
+/* The .token is absolutely positioned by JS (left/top %). It carries a
+   transparent 44px hit-pad so it is always easy to tap, with the visible
+   disc sized to the cell on top. */
+.token {
+  position: absolute;
+  width: 6.4%; height: 6.4%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  transition: left .28s cubic-bezier(.34,1.2,.5,1), top .28s cubic-bezier(.34,1.2,.5,1);
+  cursor: default;
+}
+.token .hit {            /* guarantees a >=44px touch target */
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px; height: 44px;
+  min-width: 150%; min-height: 150%;
+}
+.token .disc {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(0,0,0,.35);
+  box-shadow: 0 2px 4px rgba(0,0,0,.35), inset 0 -3px 5px rgba(0,0,0,.28), inset 0 3px 4px rgba(255,255,255,.4);
+  pointer-events: none;
+}
+.token.red    .disc { background: var(--p-red); }
+.token.green  .disc { background: var(--p-green); }
+.token.yellow .disc { background: var(--p-yellow); }
+.token.blue   .disc { background: var(--p-blue); }
+.token .disc::after {  /* little gloss highlight */
+  content: ""; position: absolute; left: 22%; top: 16%;
+  width: 30%; height: 30%; border-radius: 50%;
+  background: rgba(255,255,255,.55);
+}
+
+/* Movable tokens pulse / glow so the player knows what is tappable */
+.token.movable { cursor: pointer; z-index: 7; }
+.token.movable .disc {
+  animation: tokenPulse 1s ease-in-out infinite;
+  border-color: #fff;
+}
+@keyframes tokenPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--glow), 0 2px 4px rgba(0,0,0,.35), inset 0 -3px 5px rgba(0,0,0,.28); }
+  50%      { box-shadow: 0 0 0 7px transparent, 0 0 14px 4px var(--glow), 0 2px 4px rgba(0,0,0,.35), inset 0 -3px 5px rgba(0,0,0,.28); }
+}
+.token.hop { animation: hop .28s ease; }
+@keyframes hop { 50% { transform: translate(-50%, -78%) scale(1.12); } }
+
+/* ============================================================
+   Side rail: turn card + dice + controls
+   ============================================================ */
+.rail { display: flex; flex-direction: column; gap: 14px; width: 180px; flex: none; }
+.turn-card {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 12px;
+}
+.turn-card .turn-dot { width: 22px; height: 22px; border-radius: 50%; flex: none;
+  box-shadow: inset 0 -3px 4px rgba(0,0,0,.3); }
+.turn-card .turn-name { font-weight: 800; line-height: 1.1; }
+.turn-card .turn-sub { font-size: .76rem; color: var(--text-muted); }
+
+/* Dice */
+.dice {
+  width: 100%; aspect-ratio: 1 / 1; max-width: 160px;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: linear-gradient(160deg, var(--surface), var(--surface-2));
+  box-shadow: var(--shadow);
+  cursor: pointer; padding: 16%;
+  display: grid; place-items: center;
+  transition: transform .06s ease, box-shadow .15s ease;
+  min-height: 44px;
+}
+.dice:active { transform: scale(.96); }
+.dice:disabled { cursor: not-allowed; opacity: .55; }
+.dice.ready { box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow); animation: diceReady 1.1s ease-in-out infinite; }
+@keyframes diceReady { 50% { box-shadow: 0 0 0 6px var(--accent-soft), var(--shadow); } }
+.dice.rolling .dice-face { animation: diceShake .5s ease; }
+@keyframes diceShake {
+  0%,100% { transform: rotate(0); }
+  25% { transform: rotate(-16deg) scale(.92); }
+  75% { transform: rotate(16deg) scale(.92); }
+}
+.dice-face {
+  width: 100%; height: 100%;
+  display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr);
+  gap: 6%;
+}
+.dice-face span { border-radius: 50%; background: transparent; }
+.dice-face span.on { background: var(--accent); box-shadow: inset 0 -2px 3px rgba(0,0,0,.3); }
+
+.dice-hint { text-align: center; font-size: .78rem; color: var(--text-muted); min-height: 1.1em; }
+.rail-controls { display: flex; flex-direction: column; gap: 8px; }
+.rail-controls .btn { justify-content: center; }
+
+.status-line { text-align: center; font-weight: 700; margin: 14px auto 4px; min-height: 24px; max-width: 560px; }
+.status-line .cap { color: #e0533f; }
+.status-line .win { color: #2e9e5b; }
+
+/* ============================================================
+   FULLSCREEN
+   ============================================================ */
+.game-wrap:fullscreen,
+.game-wrap.fs-fallback {
+  background: var(--bg); padding: 16px; overflow: auto;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.game-wrap.fs-fallback { position: fixed; inset: 0; z-index: 60; }
+.game-wrap:fullscreen .board,
+.game-wrap.fs-fallback .board { width: min(94vw, 84vh, 720px); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 760px) {
+  .board-stage { flex-direction: column; align-items: center; }
+  .rail { width: min(92vw, 360px); }
+  .dice { max-width: 120px; }
+  .rail-controls { flex-direction: row; }
+  .rail-controls .btn { flex: 1; }
+}
+@media (max-width: 420px) {
+  .color-chip { width: 44px; height: 44px; }
+}
+
+/* ============================================================
+   THEME PALETTES
+   Each only redefines variables — nothing else.
+   --p-*       four player colours
+   --track     walkable path colour
+   --board-shell / --board-line / --star / --glow  board chrome
+   --c-half    half the centre-square size (for the triangles)
+   ============================================================ */
+.board { --c-half: calc(min(92vw, 70vh, 560px) / 15 * 1.5); }
+.game-wrap:fullscreen .board,
+.game-wrap.fs-fallback .board { --c-half: calc(min(94vw, 84vh, 720px) / 15 * 1.5); }
+
+/* 1) Classic Nostalgia — bright tiles on clean white */
+.board[data-palette="classic"] {
+  --p-red: #e63d34; --p-green: #2ea04f; --p-yellow: #f4c220; --p-blue: #2f6bd4;
+  --track: #ffffff; --board-shell: #f3f4f6; --board-line: #d7dbe0;
+  --star: #6b7280; --glow: #ffd54a;
+}
+/* 2) Cyberpunk / Neon Night — charcoal paths, neon tokens */
+.board[data-palette="cyberpunk"] {
+  --p-red: #ff2e88;   /* neon pink   */
+  --p-green: #b6ff3a; /* lime green  */
+  --p-yellow: #16e0ff;/* electric cyan */
+  --p-blue: #b36bff;  /* vivid purple  */
+  --track: #1c2030; --board-shell: #0c0f17; --board-line: #2c3346;
+  --star: #16e0ff; --glow: #16e0ff;
+}
+.board[data-palette="cyberpunk"] .cell,
+.board[data-palette="cyberpunk"] .center { box-shadow: inset 0 0 0 1px rgba(120,160,255,.05); }
+.board[data-palette="cyberpunk"] .token .disc { box-shadow: 0 0 10px 1px currentColor, inset 0 -3px 5px rgba(0,0,0,.4); }
+/* 3) Pastel Dreams — soft, calming */
+.board[data-palette="pastel"] {
+  --p-red: #ffb3c1;   /* blush pink  */
+  --p-green: #b8e6c8; /* pastel mint */
+  --p-yellow: #fdeaa8;/* vanilla     */
+  --p-blue: #cdbff0;  /* lavender    */
+  --track: #fdfcff; --board-shell: #f4f0fb; --board-line: #e7e1f2;
+  --star: #b09cd6; --glow: #ffc6d6;
+}
+.board[data-palette="pastel"] .token .disc { border-color: rgba(0,0,0,.18); }
+/* 4) Wooden Classic — rustic wood grain, earthy bases */
+.board[data-palette="wooden"] {
+  --p-red: #9e3b2e;   /* brick   */
+  --p-green: #5d6b32; /* olive   */
+  --p-yellow: #c08a2d;/* ochre   */
+  --p-blue: #2f5d63;  /* teal    */
+  --track: #f3e4c6; --board-line: #d8c39b; --star: #7a5a2e; --glow: #e7b765;
+  --board-shell:
+    repeating-linear-gradient(48deg, #7a5230 0 7px, #835835 7px 14px, #6f4a2b 14px 21px);
+}
+.board[data-palette="wooden"] .cell { background-blend-mode: multiply; }
+.board[data-palette="wooden"] .base { box-shadow: inset 0 0 0 2px rgba(0,0,0,.18); }
+
+/* Winner modal */
+.modal {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(0,0,0,.55);
+  display: grid; place-items: center;
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+.modal[hidden] { display: none; }
+.modal-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; padding: 26px 28px; text-align: center;
+  box-shadow: var(--shadow); max-width: 320px; animation: pop .2s ease;
+}
+.modal-card .win-emoji { font-size: 3rem; }
+.modal-card h3 { margin: 8px 0 4px; font-size: 1.3rem; }
+.modal-card p { margin: 0 0 18px; color: var(--text-muted); }
+@keyframes pop { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
