@@ -186,6 +186,8 @@
       this.sixStreak = 0;
       this.movable = [];                  // tokens the current player may move
       this.over = false;
+      this.autoHuman = false;             // auto-play: the human is driven by the AI
+      this.autoDifficulty = "hard";       // strength used when auto-playing the human
     }
 
     clearTimers() { this.timers.forEach(clearTimeout); this.timers = []; }
@@ -193,6 +195,26 @@
 
     current() { return this.players[this.turnIdx]; }
     isHumanTurn() { return !this.current().isBot && !this.over; }
+
+    // A player acts on its own when it's a bot, or when the human has auto-play on.
+    auto(p) { return p.isBot || (this.autoHuman && !p.isBot); }
+
+    // Toggle auto-play and, if it's the human's idle turn, resume it automatically.
+    setAuto(on) {
+      this.autoHuman = on;
+      this.hooks.onState();
+      if (!on || this.over || !this.isHumanTurn()) return;
+      const self = this;
+      if (this.phase === "roll") {
+        this.later(function () { if (self.autoHuman) self.roll(); }, 400);
+      } else if (this.phase === "move" && this.dice != null) {
+        const moves = this.legalMoves(this.current().color, this.dice);
+        if (moves.length) {
+          const mv = AI.choose(this, this.current().color, this.dice, moves, this.autoDifficulty);
+          this.later(function () { if (self.autoHuman) self.execute(mv); }, 400);
+        }
+      }
+    }
 
     /* ---- helpers shared with the AI ---- */
 
@@ -256,10 +278,10 @@
       this.phase = "roll";
       this.movable = [];
       this.hooks.onState();
-      if (p.isBot) {
-        // Bots auto-roll after a natural 1-second delay.
-        this.hooks.onStatus(p.name + " is thinking…");
-        this.later(this.roll.bind(this), 1000);
+      if (this.auto(p)) {
+        // Bots (and the auto-played human) roll after a natural delay.
+        this.hooks.onStatus(p.isBot ? (p.name + " is thinking…") : "Auto-playing your turn…");
+        this.later(this.roll.bind(this), p.isBot ? 1000 : 700);
       } else {
         this.hooks.onStatus("Your turn — tap the dice.");
       }
@@ -295,8 +317,9 @@
       this.phase = "move";
       this.movable = moves.map(function (m) { return m.token; });
 
-      if (p.isBot) {
-        const move = AI.choose(this, p.color, value, moves, p.difficulty);
+      if (this.auto(p)) {
+        const diff = p.isBot ? p.difficulty : this.autoDifficulty;
+        const move = AI.choose(this, p.color, value, moves, diff);
         this.later(this.execute.bind(this, move), 550);
       } else {
         this.hooks.onState();              // highlights the movable tokens (pulse)
@@ -319,7 +342,7 @@
     }
 
     execute(move) {
-      if (this.over) return;
+      if (this.over || this.phase !== "move") return;   // idempotent: ignore double-fires
       this.phase = "anim";
       this.movable = [];
       const color = this.current().color;
@@ -698,7 +721,7 @@
     turnCard: $("turnCard"), turnDot: $("turnDot"),
     turnName: $("turnName"), turnSub: $("turnSub"),
     status: $("status"), newBtn: $("newBtn"), fsBtn: $("fsBtn"),
-    soundBtn: $("soundBtn"), musicBtn: $("musicBtn"),
+    soundBtn: $("soundBtn"), musicBtn: $("musicBtn"), autoBtn: $("autoBtn"),
     winModal: $("winModal"), winEmoji: $("winEmoji"),
     winTitle: $("winTitle"), winSub: $("winSub"), winAgain: $("winAgain")
   };
@@ -827,19 +850,22 @@
       const human = game.isHumanTurn();
       renderer.setMovable(game.movable, human && game.phase === "move");
 
-      // Dice availability + glow.
-      const canRoll = human && game.phase === "roll";
+      // Dice availability + glow (auto-played humans don't roll by hand).
+      const canRoll = human && game.phase === "roll" && !game.autoHuman;
       els.dice.disabled = !canRoll;
       els.dice.classList.toggle("ready", canRoll);
       els.diceHint.textContent = canRoll ? "Tap the dice to roll" :
-        (game.current().isBot ? game.current().name + "…" : "");
+        (human && game.autoHuman ? "Auto-playing…" :
+        (game.current().isBot ? game.current().name + "…" : ""));
 
       // Turn card.
       const p = game.current();
       els.turnDot.style.background = swatch(p.color);
       els.turnName.textContent = COLOR_NAME[p.color] + (p.isBot ? "" : " (You)");
-      els.turnSub.textContent = p.isBot ? ("Bot · " + cap(p.difficulty)) : "Your turn";
+      els.turnSub.textContent = p.isBot ? ("Bot · " + cap(p.difficulty)) :
+        (game.autoHuman ? "Auto-play" : "Your turn");
 
+      updateAutoButton();
       renderPlayers();
     },
 
@@ -979,6 +1005,18 @@
     updateAudioButtons(); savePrefs();
   });
 
+  /* ---- auto-play (the AI plays the human's turns) ---- */
+  function updateAutoButton() {
+    const on = !!(game && game.autoHuman);
+    els.autoBtn.innerHTML = (on ? "🤖" : "🧑") + " Auto: " + (on ? "On" : "Off");
+    els.autoBtn.classList.toggle("on", on);
+  }
+  els.autoBtn.addEventListener("click", function () {
+    if (!game || game.over) return;
+    game.setAuto(!game.autoHuman);
+    updateAutoButton();
+  });
+
   // Browsers only allow audio after a user gesture; prime it on the first one.
   function primeAudio() {
     Sound.ensure(); Sound.resume();
@@ -995,6 +1033,7 @@
 
     if (e.code === "Space" || e.key === " ") { e.preventDefault(); rollNow(); return; }
     if (k === "f") { e.preventDefault(); els.fsBtn.click(); return; }
+    if (k === "a") { els.autoBtn.click(); return; }
     if (k === "m") { els.musicBtn.click(); return; }
     if (k === "s") { els.soundBtn.click(); return; }
     if (k === "n") { els.newBtn.click(); return; }

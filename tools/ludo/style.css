@@ -287,6 +287,11 @@
 .rail-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .rail-controls .btn { justify-content: center; padding: 9px 8px; }
 .rail-controls .btn.off { opacity: .55; }
+.rail-controls .auto-btn { grid-column: 1 / -1; }
+.rail-controls .btn.on {            /* active toggle (auto-play) */
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
 .hotkeys { font-size: .72rem; color: var(--text-muted); text-align: center; line-height: 1.5; }
 .hotkeys b { color: var(--text); }
 kbd {

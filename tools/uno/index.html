@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>UNO — Play vs Bots | HTML Tools</title>
+  <meta name="description" content="A modern, responsive, turn-based UNO card game. Play against 1–3 AI bots with Easy/Medium/Hard difficulty, four visual themes, animations, sound effects and full touch support. Runs entirely in your browser." />
+
+  <!-- Shared site styles (header, buttons, panels, how-to) -->
+  <link rel="stylesheet" href="../../assets/style.css" />
+  <!-- This tool's own styles -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Set the site light/dark theme before paint to avoid a flash -->
+  <script>
+    (function () {
+      var t = localStorage.getItem("html-tools-theme") ||
+        (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+</head>
+<body>
+  <!-- ================= Shared site header ================= -->
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="../../">
+        <span class="logo">&lt;/&gt;</span>
+        <span>HTML Tools</span>
+      </a>
+      <button class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container tool-main">
+    <a class="back-link" href="../../">← All tools</a>
+    <h1>UNO</h1>
+    <p class="subtitle">Match colour or number, fire off Skips, Reverses and Wild Draw Fours, and shout “UNO!” before the bots catch you. Play 1–3 AI opponents across four hand-built themes — entirely offline, on your device.</p>
+
+    <!-- ============================================================
+         LOBBY (setup screen)
+         ============================================================ -->
+    <section class="panel lobby" id="lobby">
+      <div class="lobby-grid">
+
+        <div class="field">
+          <label for="numBots">Opponents</label>
+          <select id="numBots">
+            <option value="1">1 bot</option>
+            <option value="2">2 bots</option>
+            <option value="3" selected>3 bots</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="difficulty">Bot difficulty</label>
+          <select id="difficulty">
+            <option value="easy">Easy — random, forgetful</option>
+            <option value="medium" selected>Medium — tactical</option>
+            <option value="hard">Hard — card counter</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="themeSel">Theme</label>
+          <select id="themeSel">
+            <option value="classic" selected>Classic Deck</option>
+            <option value="cyber">Cyberpunk Neon</option>
+            <option value="matte">Minimalist Matte</option>
+            <option value="gold">Luxury Gold</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="yourName">Your name</label>
+          <input type="text" id="yourName" maxlength="14" placeholder="You" value="You" />
+        </div>
+      </div>
+
+      <div class="lobby-toggles">
+        <label class="switch">
+          <input type="checkbox" id="muteSfx" />
+          <span class="track"></span>
+          <span class="switch-label">Mute SFX</span>
+        </label>
+        <label class="switch">
+          <input type="checkbox" id="muteMusic" checked />
+          <span class="track"></span>
+          <span class="switch-label">Mute Ambient Music</span>
+        </label>
+        <label class="switch">
+          <input type="checkbox" id="autoUno" checked />
+          <span class="track"></span>
+          <span class="switch-label">Auto-call my UNO</span>
+        </label>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary big" id="startBtn">▶ Start match</button>
+      </div>
+
+      <div class="howto">
+        <h2>How to play</h2>
+        <ol>
+          <li>Pick your opponents, difficulty and theme, then press <strong>Start match</strong>.</li>
+          <li>On your turn, play any card that matches the discard pile’s <strong>colour</strong>, <strong>number</strong> or <strong>symbol</strong>. Glowing cards are legal; dimmed ones aren’t.</li>
+          <li><strong>Tap</strong> a card to play it, or <strong>drag</strong> it onto the centre pile. Wild cards let you pick the next colour.</li>
+          <li>If you can’t play, press <strong>Draw</strong> to take a card from the deck.</li>
+          <li>When you’re down to one card, hit the big <strong>UNO!</strong> button within 1.5s — or a bot can catch you for a +2 penalty. Tap it on a careless bot to catch them too.</li>
+          <li>First to empty their hand wins the round. Turn on <strong>Auto-play</strong> any time to let the game play your hand for you.</li>
+        </ol>
+        <p class="note">Everything runs locally — no accounts, no network, no tracking. Your last settings are remembered on this device.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         GAME TABLE
+         ============================================================ -->
+    <section class="uno-stage" id="stage" hidden>
+      <div class="uno-table" id="table" data-uno-theme="classic">
+
+        <!-- direction ring overlay (reverse VFX lives here) -->
+        <div class="dir-ring" id="dirRing" aria-hidden="true"></div>
+
+        <!-- toolbar -->
+        <div class="table-bar">
+          <div class="table-bar-left">
+            <button class="mini-btn" id="newRoundBtn" title="New round">↻ New round</button>
+            <button class="mini-btn" id="quitBtn" title="Back to lobby">⏏ Lobby</button>
+          </div>
+          <div class="table-bar-center">
+            <span class="badge" id="dirBadge">⟳ Clockwise</span>
+            <span class="badge" id="colorBadge">Colour: —</span>
+          </div>
+          <div class="table-bar-right">
+            <button class="mini-btn" id="sfxBtn" title="Toggle sound effects" aria-pressed="true">🔊 SFX</button>
+            <button class="mini-btn" id="musicBtn" title="Toggle ambient music" aria-pressed="false">🎵 Music</button>
+            <button class="mini-btn" id="autoBtn" title="Toggle auto-play" aria-pressed="false">🤖 Auto-play</button>
+          </div>
+        </div>
+
+        <!-- opponent seats -->
+        <div class="seat seat-top"    id="seat-top"></div>
+        <div class="seat seat-left"   id="seat-left"></div>
+        <div class="seat seat-right"  id="seat-right"></div>
+
+        <!-- centre: draw + discard -->
+        <div class="center">
+          <div class="pile draw-pile" id="drawPile" title="Draw a card">
+            <div class="card-back deck-back"><span>UNO</span></div>
+            <div class="pile-count" id="drawCount">108</div>
+          </div>
+          <div class="pile discard-pile" id="discardPile" aria-label="Discard pile">
+            <div class="drop-hint" id="dropHint">Drop here</div>
+          </div>
+        </div>
+
+        <!-- status line -->
+        <div class="turn-status" id="turnStatus">Your turn</div>
+
+        <!-- human seat (bottom) -->
+        <div class="seat seat-bottom" id="seat-bottom">
+          <div class="human-hand" id="humanHand"></div>
+        </div>
+
+        <!-- action bar -->
+        <div class="action-bar">
+          <button class="btn action-draw" id="drawBtn">＋ Draw</button>
+          <button class="btn action-pass" id="passBtn" hidden>Pass ▸</button>
+          <button class="uno-call" id="unoBtn">UNO!</button>
+        </div>
+
+        <!-- FX layer: flying cards, particles, alerts -->
+        <div class="fx-layer" id="fxLayer" aria-hidden="true"></div>
+
+        <!-- colour chooser (for wild cards) -->
+        <div class="color-chooser" id="colorChooser" hidden>
+          <div class="chooser-card">
+            <p>Choose a colour</p>
+            <div class="chooser-grid">
+              <button class="cc cc-red"    data-color="red"></button>
+              <button class="cc cc-yellow" data-color="yellow"></button>
+              <button class="cc cc-green"  data-color="green"></button>
+              <button class="cc cc-blue"   data-color="blue"></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- round / game over overlay -->
+        <div class="result-overlay" id="resultOverlay" hidden>
+          <div class="result-card">
+            <h2 id="resultTitle">You win! 🎉</h2>
+            <p id="resultBody"></p>
+            <div class="btn-row" style="justify-content:center">
+              <button class="btn btn-primary big" id="playAgainBtn">Play again</button>
+              <button class="btn" id="toLobbyBtn">Lobby</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- log -->
+        <div class="event-log" id="eventLog" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      Built for fun · Runs entirely in your browser ·
+      <a href="https://github.com/ccrbd/HTML-Tools" target="_blank" rel="noopener">Source on GitHub</a>
+    </div>
+  </footer>
+
+  <script src="../../assets/theme.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
