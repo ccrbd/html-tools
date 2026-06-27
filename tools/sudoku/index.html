@@ -16,8 +16,8 @@
   <style>
     /* ---- Board colour themes ---- */
     .board-wrap{
-      --board-size:460px;
-      --bw: min(94vw, var(--board-size), 72vh);
+      --n:9; --nc:3; --nr:3;
+      --bw: min(94vw, 540px, 74vh);
       --accent2:#4f6df5;
       --sel: color-mix(in srgb, var(--accent2) 30%, transparent);
       --peer: color-mix(in srgb, var(--accent2) 11%, transparent);
@@ -67,13 +67,13 @@
     .cell.cr9{ border-right:none; } .cell.rb9{ border-bottom:none; }
     .cell.br{ border-right:2.5px solid var(--grid-bold); }
     .cell.bb{ border-bottom:2.5px solid var(--grid-bold); }
-    .cell .num{ font-size:calc(var(--bw)/9*.56); line-height:1; font-weight:600; }
+    .cell .num{ font-size:calc(var(--bw)/var(--n)*.56); line-height:1; font-weight:600; }
     .cell.given .num{ color:var(--text); font-weight:800; }
     .cell.user .num{ color:var(--accent2); }
     .cell.hint .num{ color:#2e9e5b; }
     .cell .notes{ position:absolute; inset:7%; display:grid;
-      grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); }
-    .cell .notes span{ display:grid; place-items:center; font-size:calc(var(--bw)/9*.23);
+      grid-template-columns:repeat(var(--nc),1fr); grid-template-rows:repeat(var(--nr),1fr); }
+    .cell .notes span{ display:grid; place-items:center; font-size:calc(var(--bw)/var(--n)*.21);
       color:var(--text-muted); line-height:1; }
 
     /* highlight layers */
@@ -135,6 +135,26 @@
       .controls .btn{ padding:9px 10px; min-width:0; }
       .controls .btn span.lbl{ display:none; }
     }
+
+    /* ---- "How to solve" guide ---- */
+    .solve-guide{ margin-top:18px; background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:4px 22px; }
+    .solve-guide > summary{ cursor:pointer; padding:18px 0; font-weight:700; font-size:1.05rem; list-style:none; }
+    .solve-guide > summary::-webkit-details-marker{ display:none; }
+    .solve-guide > summary::before{ content:"▸"; margin-right:10px; color:var(--accent);
+      display:inline-block; transition:transform .15s ease; }
+    .solve-guide[open] > summary::before{ transform:rotate(90deg); }
+    .solve-guide .body{ padding-bottom:20px; max-width:760px; }
+    .solve-guide h3{ margin:20px 0 6px; font-size:1.02rem; }
+    .solve-guide p{ margin:8px 0; color:var(--text); font-size:.95rem; line-height:1.65; }
+    .solve-guide ul{ margin:8px 0; padding-left:22px; }
+    .solve-guide li{ margin:6px 0; font-size:.95rem; line-height:1.55; }
+    .solve-guide li::marker{ color:var(--accent); }
+    .solve-guide .tip{ background:var(--accent-soft); color:var(--text); border-radius:10px;
+      padding:11px 15px; margin:14px 0; font-size:.92rem; }
+    .solve-guide .lvl{ display:inline-block; font-size:.72rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.04em; color:var(--accent); background:var(--accent-soft); border-radius:6px;
+      padding:2px 7px; margin-left:8px; vertical-align:middle; }
   </style>
 </head>
 <body>
@@ -179,11 +199,12 @@
           </select>
         </div>
         <div class="field">
-          <label for="sizeSel">Tile size</label>
-          <select id="sizeSel">
-            <option value="380">Small</option>
-            <option value="460" selected>Medium</option>
-            <option value="560">Large</option>
+          <label for="gridSel">Grid</label>
+          <select id="gridSel">
+            <option value="2,2">4×4 (2×2 boxes)</option>
+            <option value="3,2">6×6 (2×3 boxes)</option>
+            <option value="3,3" selected>9×9 (3×3 boxes)</option>
+            <option value="4,4">16×16 (4×4 boxes)</option>
           </select>
         </div>
         <div class="start-cell">
@@ -241,6 +262,54 @@
       </ol>
       <p class="note">100% offline — every puzzle is generated locally and has a single unique solution.</p>
     </div>
+
+    <details class="solve-guide">
+      <summary>How to solve Sudoku — a complete guide</summary>
+      <div class="body">
+        <p>The examples below use the classic 9×9 grid, but every technique works on the 4×4, 6×6 and 16×16 variants too — just replace "digits 1–9" with the digit range for that grid (1–4, 1–6, or 1–9 plus A–G).</p>
+
+        <h3>The one rule</h3>
+        <p>Fill the grid so that <b>every row, every column and every box contains each digit exactly once</b>. That's it — a digit may never repeat within the same row, column or box. There is always exactly one solution, so you never have to guess: every cell can be reasoned out.</p>
+
+        <h3>1. Scanning / cross-hatching <span class="lvl">Start here</span></h3>
+        <p>Pick a digit, say <b>5</b>, and look at where the 5s already are. For each box that's still missing a 5, mentally cross out every row and column that already contains a 5. Often only one cell in the box survives — that cell must be a 5. Repeat for each digit and each box. This alone solves most Easy puzzles.</p>
+
+        <h3>2. Naked single (the "only choice") <span class="lvl">Easy</span></h3>
+        <p>Look at a single empty cell and list which digits are still allowed in it (not already in its row, column or box). If only <b>one</b> digit is possible, that's the answer. Cells with the fewest open neighbours are the best place to hunt.</p>
+
+        <h3>3. Hidden single <span class="lvl">Easy</span></h3>
+        <p>A cell might have several candidates, yet a digit may have <b>only one home</b> in a given row, column or box. If 7 can legally go in just one cell of a box — even if that cell could also hold other numbers — then 7 belongs there. Hidden singles are the most common "aha" after scanning.</p>
+
+        <div class="tip">💡 Tip: turn on <b>Notes</b> and pencil in candidates once scanning slows down. Seeing the possibilities written out makes the next four techniques obvious.</div>
+
+        <h3>4. Naked pairs &amp; triples <span class="lvl">Medium</span></h3>
+        <p>If two cells in the same unit (row, column or box) have the <b>exact same two candidates</b> — say {3,8} and {3,8} — then 3 and 8 are locked into those two cells. You can safely remove 3 and 8 from every other cell in that unit. The same idea extends to three cells sharing three candidates (a naked triple).</p>
+
+        <h3>5. Hidden pairs <span class="lvl">Medium</span></h3>
+        <p>The mirror image of a naked pair: if two digits can <b>only</b> appear in the same two cells of a unit, those cells must hold those two digits. You can then erase all <i>other</i> candidates from those two cells, which often unlocks them.</p>
+
+        <h3>6. Pointing pairs (box → line) <span class="lvl">Hard</span></h3>
+        <p>Within a box, if a digit's only candidates all sit in <b>one row (or one column)</b>, then that digit must come from that box's portion of the line. So you can remove it from the rest of that row/column outside the box — even though you haven't placed it yet.</p>
+
+        <h3>7. Box/line reduction (line → box) <span class="lvl">Hard</span></h3>
+        <p>The reverse: if a digit in a row or column is confined to the cells that also belong to a single box, remove that digit from the rest of that box. Techniques 6 and 7 are the workhorses of Hard puzzles.</p>
+
+        <h3>8. X-Wing <span class="lvl">Expert</span></h3>
+        <p>An advanced pattern: when a digit appears as a candidate in exactly two cells on each of two different rows, and those cells line up in the <b>same two columns</b>, the digit can be removed from those two columns everywhere else. (The same works with rows and columns swapped.) Swordfish and XY-Wing extend the idea further for the very hardest grids.</p>
+
+        <h3>A reliable solving routine</h3>
+        <ul>
+          <li>Scan each digit 1–9 across all boxes for easy placements.</li>
+          <li>Fill every naked and hidden single you can find.</li>
+          <li>When stuck, pencil in all candidates and look for naked/hidden pairs.</li>
+          <li>Use pointing pairs and box/line reduction to trim candidates further.</li>
+          <li>Only reach for X-Wing-style patterns on Expert puzzles.</li>
+          <li>Never guess — if you're stuck, a logical step exists; the <b>Hint</b> button can show you one cell to get unstuck.</li>
+        </ul>
+
+        <div class="tip">Smaller grids (4×4, 6×6) are perfect for learning these patterns; 16×16 is the same logic at a larger scale, so master the 9×9 first.</div>
+      </div>
+    </details>
   </main>
 
   <footer class="site-footer">
