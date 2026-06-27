@@ -133,7 +133,7 @@
 
   function Game() {
     // dom
-    this.lobby = $("lobby"); this.stage = $("stage"); this.arena = $("arena");
+    this.lcRoot = $("lcRoot"); this.lobby = $("lobby"); this.stage = $("stage"); this.arena = $("arena");
     this.seatsEl = $("seats"); this.feed = $("chatFeed"); this.chatOnline = $("chatOnline");
     this.statusEl = $("statusLine"); this.roundBadge = $("roundBadge");
     this.potBadge = $("potBadge"); this.balBadge = $("balBadge");
@@ -363,16 +363,21 @@
     var card = this.deck.draw();
     player.currentCard = card;
     this.fillCard(player, card);
-    player.stateEl.textContent = "drew a card";
     this.sfx.draw();
-    this.chat(player.isHuman ? "you" : "draw", player.name, "has drawn a card");
 
     if (player.isHuman) {
+      // reveal your OWN card straight away (opponents stay face-down till showdown)
+      player.cardEl.classList.add("flipped");
+      player.stateEl.textContent = card.label() + card.suit.sym;
+      this.chat("you", player.name, "drew the " + card.fullName());
       this._humanCanDraw = false;
       this.deckBtn.disabled = true;
       this.deckBtn.querySelector(".deck-sub").textContent = "drawn";
       this.stopTimer();
       this.timerWrap.classList.remove("urgent");
+    } else {
+      player.stateEl.textContent = "drew a card";
+      this.chat("draw", player.name, "has drawn a card");
     }
 
     this._drawn++;
@@ -397,8 +402,9 @@
     return this.wait(160).then(function () {
       group.forEach(function (p) {
         var c = p.currentCard;
-        self.chat(p.isHuman ? "you" : "draw", p.name, "has drawn a " + c.fullName());
         p.stateEl.textContent = c.label() + c.suit.sym;
+        if (p.isHuman) return; // your card + value were already shown at draw time
+        self.chat("draw", p.name, "has drawn a " + c.fullName());
       });
     });
   };
@@ -602,7 +608,7 @@
   };
 
   Game.prototype.toggleFullscreen = function () {
-    var el = this.arena;
+    var el = this.lcRoot;
     var fsEl = document.fullscreenElement || document.webkitFullscreenElement;
     if (!fsEl) {
       var req = el.requestFullscreen || el.webkitRequestFullscreen;
@@ -667,11 +673,14 @@
   });
 
   game.fsBtn.addEventListener("click", function () { game.toggleFullscreen(); });
+  $("fsBtnLobby").addEventListener("click", function () { game.toggleFullscreen(); });
   ["fullscreenchange", "webkitfullscreenchange"].forEach(function (ev) {
     document.addEventListener(ev, function () {
       var on = !!(document.fullscreenElement || document.webkitFullscreenElement);
       game.fsBtn.setAttribute("aria-pressed", String(on));
       game.fsBtn.textContent = on ? "🗗" : "⛶";
+      var lb = $("fsBtnLobby");
+      if (lb) lb.textContent = on ? "🗗 Exit fullscreen" : "⛶ Fullscreen";
     });
   });
 

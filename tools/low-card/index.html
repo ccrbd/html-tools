@@ -40,6 +40,10 @@
     <h1>Low Card <span class="lc-tm">mig33 revival</span></h1>
     <p class="subtitle">The classic chatroom elimination game. Tap the deck before the 20-second timer dies — the player holding the <strong>lowest</strong> card each round is knocked out. Tie for lowest? Sudden-death redraw. Last survivor scoops the pot. Play 4–20 players, ante from your balance, and go fullscreen.</p>
 
+    <!-- Wrapper around BOTH lobby and arena so fullscreen keeps the
+         lobby reachable (Enter the table must work in fullscreen). -->
+    <div id="lcRoot">
+
     <!-- ============================================================
          LOBBY (setup screen)
          ============================================================ -->
@@ -106,7 +110,7 @@
         <label class="switch">
           <input type="checkbox" id="autoPlay" />
           <span class="track"></span>
-          <span class="switch-label">Auto-play for me</span>
+          <span class="switch-label">Auto-draw for me</span>
         </label>
         <label class="switch">
           <input type="checkbox" id="muteSfx" />
@@ -117,6 +121,7 @@
 
       <div class="btn-row">
         <button class="btn btn-primary big" id="startBtn">▶ Enter the table</button>
+        <button class="btn" id="fsBtnLobby" title="Toggle fullscreen">⛶ Fullscreen</button>
         <span class="warn-note" id="warnNote" hidden>Not enough balance for this stake.</span>
       </div>
 
@@ -152,7 +157,7 @@
           <div class="bar-right">
             <span class="pot-badge" id="potBadge">💰 200</span>
             <button class="mini-btn" id="sfxBtn" title="Toggle sound" aria-pressed="true">🔊</button>
-            <button class="mini-btn" id="autoBtn" title="Toggle auto-play" aria-pressed="false">🤖</button>
+            <button class="mini-btn" id="autoBtn" title="Toggle auto-draw" aria-pressed="false">🤖 Auto</button>
             <button class="mini-btn" id="fsBtn" title="Toggle fullscreen" aria-pressed="false">⛶</button>
           </div>
         </div>
@@ -227,6 +232,8 @@
 
       </div>
     </section>
+
+    </div><!-- /#lcRoot -->
   </main>
 
   <footer class="site-footer">

@@ -125,11 +125,23 @@
   box-shadow: var(--shadow);
   font-family: var(--lc-font);
 }
-.lc-arena:fullscreen,
-.lc-arena:-webkit-full-screen {
-  height: 100vh;
-  border-radius: 0;
-  border: none;
+/* Fullscreen is applied to #lcRoot (which holds BOTH lobby + arena) so the
+   lobby's "Enter the table" button stays reachable in fullscreen. */
+#lcRoot:fullscreen,
+#lcRoot:-webkit-full-screen {
+  background: var(--bg);
+  padding: 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+#lcRoot:fullscreen .lobby,
+#lcRoot:-webkit-full-screen .lobby { max-width: 820px; margin: 0 auto; width: 100%; }
+#lcRoot:fullscreen .lc-arena,
+#lcRoot:-webkit-full-screen .lc-arena {
+  height: calc(100vh - 28px);
+  border-radius: 12px;
 }
 
 /* ---- Theme: MODERN ARCADE DARK (default) ---- */
