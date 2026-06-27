@@ -1,0 +1,619 @@
+/* ============================================================
+   Low Card — mig33 elimination game
+   Self-contained tool styles. Two visual presets are driven by
+   [data-lc-theme="wap"|"arcade"] on .lc-arena. The shared site
+   light/dark theme still styles the page chrome (header, lobby).
+   ============================================================ */
+
+/* ---------- Title flourish ---------- */
+.lc-tm {
+  font-size: .55em;
+  vertical-align: middle;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+/* ============================================================
+   LOBBY
+   ============================================================ */
+.lobby-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+.field label {
+  display: block;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.lobby-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 26px;
+  margin-top: 20px;
+}
+/* iOS-style switch */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  min-height: 48px;
+}
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch .track {
+  position: relative;
+  width: 46px; height: 27px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  transition: background .18s ease, border-color .18s ease;
+  flex: none;
+}
+.switch .track::after {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 21px; height: 21px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  transition: transform .18s ease;
+}
+.switch input:checked + .track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.switch input:checked + .track::after { transform: translateX(19px); }
+.switch input:focus-visible + .track { box-shadow: 0 0 0 3px var(--accent-soft); }
+.switch-label { font-size: .92rem; color: var(--text); }
+
+.btn.big { padding: 13px 22px; font-size: 1.02rem; font-weight: 600; }
+
+/* ============================================================
+   STAGE / ARENA SHELL
+   ============================================================ */
+.lc-stage { margin-top: 4px; }
+.lc-arena {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--lc-edge);
+  background: var(--lc-bg);
+  background-image: var(--lc-bg-img);
+  background-size: var(--lc-bg-size, auto);
+  color: var(--lc-text);
+  box-shadow: var(--shadow);
+  min-height: 560px;
+  font-family: var(--lc-font);
+}
+
+/* ---- Theme: MODERN ARCADE DARK (default) ---- */
+.lc-arena[data-lc-theme="arcade"] {
+  --lc-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --lc-bg: #11151c;
+  --lc-bg-img:
+     radial-gradient(900px 420px at 50% -10%, rgba(255,176,32,.10), transparent 60%),
+     linear-gradient(180deg, #161b24 0%, #0e1218 100%);
+  --lc-bg-size: auto;
+  --lc-edge: #2b3340;
+  --lc-text: #e8edf4;
+  --lc-muted: #93a0b2;
+  --lc-panel: #1a212c;
+  --lc-panel-2: #222b38;
+  --lc-line: #2e3845;
+  --lc-accent: #ffb020;       /* neon amber */
+  --lc-accent-2: #ff7a45;
+  --lc-accent-soft: rgba(255,176,32,.14);
+  --lc-good: #34d399;
+  --lc-bad: #f87171;
+  --lc-card-front: linear-gradient(155deg,#fdfdfb 0%,#eef0f4 100%);
+  --lc-card-ink: #15202b;
+  --lc-card-back: repeating-linear-gradient(45deg,#243042 0 10px,#1c2535 10px 20px);
+  --lc-card-back-edge: #ffb020;
+  --lc-deck: linear-gradient(155deg,#2a3444,#19212d);
+  --lc-glow: 0 0 22px rgba(255,176,32,.45);
+}
+
+/* ---- Theme: OLD-SCHOOL WAP / CHATROOM ---- */
+.lc-arena[data-lc-theme="wap"] {
+  --lc-font: "Courier New", "Lucida Console", monospace;
+  --lc-bg: #1a1a4e;
+  --lc-bg-img:
+     linear-gradient(rgba(120,150,255,.10) 1px, transparent 1px),
+     linear-gradient(90deg, rgba(120,150,255,.10) 1px, transparent 1px),
+     linear-gradient(180deg, #241a6b 0%, #120c3a 100%);
+  --lc-bg-size: 22px 22px, 22px 22px, auto;
+  --lc-edge: #5a4fd6;
+  --lc-text: #e6e3ff;
+  --lc-muted: #a99fe6;
+  --lc-panel: #221a5e;
+  --lc-panel-2: #2c2378;
+  --lc-line: #4b3fb0;
+  --lc-accent: #ffd84d;       /* nokia amber-gold */
+  --lc-accent-2: #7cf6ff;
+  --lc-accent-soft: rgba(124,246,255,.16);
+  --lc-good: #79f7a8;
+  --lc-bad: #ff8a8a;
+  --lc-card-front: linear-gradient(160deg,#fffef2 0%,#efe9cf 100%);
+  --lc-card-ink: #2a1e6b;
+  --lc-card-back: repeating-linear-gradient(0deg,#3a2fa0 0 6px,#2a2080 6px 12px);
+  --lc-card-back-edge: #ffd84d;
+  --lc-deck: linear-gradient(160deg,#3a2fa0,#241a6b);
+  --lc-glow: 0 0 18px rgba(124,246,255,.5);
+}
+.lc-arena[data-lc-theme="wap"] .round-badge,
+.lc-arena[data-lc-theme="wap"] .status-line {
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* ============================================================
+   ARENA TOOLBAR
+   ============================================================ */
+.arena-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--lc-panel) 80%, transparent);
+  border-bottom: 1px solid var(--lc-line);
+  flex-wrap: wrap;
+}
+.bar-left, .bar-right { display: flex; align-items: center; gap: 8px; }
+.bar-center { flex: 1; text-align: center; min-width: 120px; }
+
+.mini-btn {
+  min-height: 40px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--lc-line);
+  background: var(--lc-panel-2);
+  color: var(--lc-text);
+  font-family: inherit;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: transform .08s ease, background .15s ease, box-shadow .15s ease;
+}
+.mini-btn:hover { background: var(--lc-panel); }
+.mini-btn:active { transform: scale(.94); }
+.mini-btn[aria-pressed="true"] {
+  border-color: var(--lc-accent);
+  color: var(--lc-accent);
+  box-shadow: inset 0 0 0 1px var(--lc-accent);
+}
+.pot-badge {
+  font-weight: 700;
+  font-size: .9rem;
+  color: var(--lc-accent);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--lc-accent-soft);
+  white-space: nowrap;
+}
+.round-badge {
+  font-weight: 700;
+  font-size: .95rem;
+  color: var(--lc-text);
+}
+
+/* ============================================================
+   ARENA BODY: table + chat
+   ============================================================ */
+.arena-body {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 0;
+}
+.table-col {
+  padding: 16px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+/* ---------- Timer ---------- */
+.timer-wrap {
+  position: relative;
+  width: 92px; height: 92px;
+  margin: 6px 0 10px;
+  transition: transform .2s ease;
+}
+.timer-wrap.urgent { animation: timerPulse .5s ease infinite; }
+@keyframes timerPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+.timer-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+.timer-ring circle {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.ring-track { stroke: var(--lc-line); }
+.ring-fill {
+  stroke: var(--lc-accent);
+  stroke-dasharray: 326.7;       /* 2πr, r=52 */
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear, stroke .3s ease;
+}
+.timer-wrap.urgent .ring-fill { stroke: var(--lc-bad); }
+.timer-num {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--lc-text);
+  font-variant-numeric: tabular-nums;
+}
+.timer-wrap.hidden-timer { visibility: hidden; }
+
+/* ---------- Seats ---------- */
+.seats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+.seat {
+  position: relative;
+  background: var(--lc-panel);
+  border: 1px solid var(--lc-line);
+  border-radius: 14px;
+  padding: 12px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: border-color .25s ease, opacity .4s ease, transform .4s ease, box-shadow .25s ease;
+}
+.seat.is-human { border-color: var(--lc-accent); }
+.seat.active {
+  box-shadow: 0 0 0 2px var(--lc-accent), var(--lc-glow);
+}
+.seat.safe::after {
+  content: "SAFE";
+  position: absolute;
+  top: 6px; right: 6px;
+  font-size: .55rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: var(--lc-good);
+  background: color-mix(in srgb, var(--lc-good) 18%, transparent);
+  padding: 2px 5px;
+  border-radius: 5px;
+}
+.seat.eliminated {
+  opacity: .38;
+  filter: grayscale(.7);
+}
+.seat.eliminated::after {
+  content: "OUT";
+  position: absolute;
+  top: 6px; right: 6px;
+  font-size: .55rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: var(--lc-bad);
+  background: color-mix(in srgb, var(--lc-bad) 20%, transparent);
+  padding: 2px 5px;
+  border-radius: 5px;
+}
+.seat-avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.15rem;
+  background: var(--lc-panel-2);
+  border: 1px solid var(--lc-line);
+}
+.seat.is-human .seat-avatar { background: var(--lc-accent-soft); }
+.seat-name {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--lc-text);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.seat-state {
+  font-size: .66rem;
+  color: var(--lc-muted);
+  min-height: 14px;
+  text-align: center;
+}
+
+/* ---------- Card (with 3D flip) ---------- */
+.card {
+  width: 60px; height: 84px;
+  perspective: 600px;
+  margin-top: 2px;
+}
+.card-inner {
+  position: relative;
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .55s cubic-bezier(.4,.15,.2,1);
+}
+.card.flipped .card-inner { transform: rotateY(180deg); }
+.card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,.35);
+}
+.card-back {
+  background: var(--lc-card-back);
+  border: 2px solid var(--lc-card-back-edge);
+}
+.card-back::after {
+  content: "♠";
+  font-size: 1.4rem;
+  color: var(--lc-card-back-edge);
+  opacity: .85;
+}
+.card-front {
+  transform: rotateY(180deg);
+  background: var(--lc-card-front);
+  color: var(--lc-card-ink);
+  border: 1px solid rgba(0,0,0,.15);
+  flex-direction: column;
+  font-weight: 800;
+}
+.card-front .rank { font-size: 1.5rem; line-height: 1; }
+.card-front .suit { font-size: 1rem; line-height: 1; margin-top: 2px; }
+.card-front.red { color: #c2261d; }
+/* empty placeholder when no card yet */
+.card.empty .card-inner { opacity: .25; }
+.card.lowest .card-front {
+  box-shadow: 0 0 0 3px var(--lc-bad), 0 0 16px var(--lc-bad);
+}
+.card.winner-card .card-front {
+  box-shadow: 0 0 0 3px var(--lc-good), 0 0 18px var(--lc-good);
+}
+.card.dealing { animation: dealIn .35s ease both; }
+@keyframes dealIn {
+  from { transform: translateY(-14px) scale(.9); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* shatter / eliminate VFX on a seat */
+.seat.shatter { animation: shatterOut .8s ease forwards; }
+@keyframes shatterOut {
+  0%   { transform: none; opacity: 1; }
+  20%  { transform: translateX(-3px) rotate(-1deg); }
+  40%  { transform: translateX(4px) rotate(1.5deg); }
+  60%  { transform: translateX(-4px) rotate(-2deg); filter: brightness(1.4); }
+  100% { transform: translateY(40px) rotate(8deg) scale(.7); opacity: 0; }
+}
+
+/* ---------- Status line ---------- */
+.status-line {
+  margin: 10px 0 12px;
+  min-height: 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--lc-text);
+}
+.status-line .hl { color: var(--lc-accent); }
+
+/* ---------- Action bar / draw deck ---------- */
+.action-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+}
+.draw-deck {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.deck-card {
+  width: 96px; height: 130px;
+  min-width: 48px; min-height: 48px;
+  border-radius: 14px;
+  background: var(--lc-deck);
+  border: 2px solid var(--lc-card-back-edge);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.4), var(--lc-glow);
+  transition: transform .12s ease, box-shadow .2s ease, filter .2s ease;
+  position: relative;
+}
+.deck-card::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 9px;
+  border: 1px dashed color-mix(in srgb, var(--lc-card-back-edge) 60%, transparent);
+}
+.deck-label {
+  font-weight: 800;
+  letter-spacing: .12em;
+  font-size: .9rem;
+  color: var(--lc-card-back-edge);
+}
+.deck-sub { font-size: .65rem; color: var(--lc-muted); }
+.draw-deck:not([disabled]) .deck-card { animation: deckBeckon 1.6s ease-in-out infinite; }
+@keyframes deckBeckon { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+.draw-deck:active .deck-card { transform: scale(.93); }
+.draw-deck[disabled] { cursor: default; }
+.draw-deck[disabled] .deck-card { filter: grayscale(.6) brightness(.8); opacity: .55; animation: none; }
+
+/* ============================================================
+   CHAT FEED
+   ============================================================ */
+.chat-col {
+  border-left: 1px solid var(--lc-line);
+  background: color-mix(in srgb, var(--lc-bg) 60%, #000 8%);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--lc-line);
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--lc-muted);
+}
+.chat-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--lc-good);
+  box-shadow: 0 0 8px var(--lc-good);
+}
+.chat-online { margin-left: auto; font-weight: 600; opacity: .8; }
+.chat-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  font-size: .82rem;
+  line-height: 1.5;
+  height: 430px;
+  scroll-behavior: smooth;
+}
+.lc-arena[data-lc-theme="wap"] .chat-feed { font-family: "Courier New", monospace; }
+.chat-line { margin: 0 0 5px; word-break: break-word; animation: chatIn .2s ease; }
+@keyframes chatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+.chat-line .who { font-weight: 700; }
+.chat-line.system .who { color: var(--lc-accent-2); }
+.chat-line.system { color: var(--lc-muted); font-style: italic; }
+.chat-line.draw .who   { color: var(--lc-accent); }
+.chat-line.elim   { color: var(--lc-bad); font-weight: 600; }
+.chat-line.win    { color: var(--lc-good); font-weight: 700; }
+.chat-line.you .who { color: var(--lc-good); }
+.chat-time { color: var(--lc-muted); opacity: .6; font-size: .72rem; margin-right: 5px; }
+
+/* ============================================================
+   FX layer + floating alerts
+   ============================================================ */
+.fx-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 30;
+}
+.shard {
+  position: absolute;
+  width: 9px; height: 9px;
+  background: var(--lc-bad);
+  border-radius: 2px;
+  will-change: transform, opacity;
+}
+.toast {
+  position: absolute;
+  left: 50%; top: 38%;
+  transform: translate(-50%,-50%) scale(.7);
+  padding: 12px 22px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 1.3rem;
+  letter-spacing: .03em;
+  background: color-mix(in srgb, var(--lc-panel) 92%, transparent);
+  border: 2px solid var(--lc-accent);
+  color: var(--lc-accent);
+  box-shadow: var(--lc-glow);
+  opacity: 0;
+  animation: toastPop 1.4s ease forwards;
+  white-space: nowrap;
+}
+.toast.bad  { border-color: var(--lc-bad);  color: var(--lc-bad); }
+.toast.good { border-color: var(--lc-good); color: var(--lc-good); }
+@keyframes toastPop {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(.6); }
+  15%  { opacity: 1; transform: translate(-50%,-50%) scale(1.06); }
+  80%  { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%,-58%) scale(.96); }
+}
+
+/* ============================================================
+   RESULT OVERLAY
+   ============================================================ */
+.result-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--lc-bg) 70%, rgba(0,0,0,.6));
+  backdrop-filter: blur(4px);
+  padding: 20px;
+}
+.result-card {
+  background: var(--lc-panel);
+  border: 1px solid var(--lc-line);
+  border-radius: 18px;
+  padding: 28px 26px;
+  text-align: center;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: var(--shadow);
+  animation: resultIn .35s ease both;
+}
+@keyframes resultIn { from { transform: translateY(14px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+.result-emoji { font-size: 3rem; line-height: 1; margin-bottom: 6px; }
+.result-card h2 { margin: 0 0 8px; font-size: 1.5rem; color: var(--lc-text); }
+.result-card p { margin: 0 0 18px; color: var(--lc-muted); }
+.result-card .btn { color: var(--lc-text); border-color: var(--lc-line); background: var(--lc-panel-2); }
+.result-card .btn-primary { background: var(--lc-accent); color: #1a1206; border-color: var(--lc-accent); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 760px) {
+  .arena-body { grid-template-columns: 1fr; }
+  .chat-col {
+    border-left: none;
+    border-top: 1px solid var(--lc-line);
+    order: 3;
+  }
+  .chat-feed { height: 180px; }
+  .card { width: 52px; height: 73px; }
+  .card-front .rank { font-size: 1.3rem; }
+  .deck-card { width: 84px; height: 116px; }
+}
+@media (max-width: 460px) {
+  .seats { gap: 6px; }
+  .seat { padding: 9px 4px 8px; border-radius: 11px; }
+  .seat-avatar { width: 32px; height: 32px; font-size: 1rem; }
+  .seat-name { font-size: .68rem; }
+  .card { width: 44px; height: 62px; }
+  .card-front .rank { font-size: 1.1rem; }
+  .card-front .suit { font-size: .8rem; }
+  .timer-wrap { width: 76px; height: 76px; }
+  .timer-num { font-size: 1.5rem; }
+  .lc-tm { display: none; }
+}
+
+/* reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  .card-inner, .deck-card, .seat, .toast { transition: none !important; animation: none !important; }
+}
