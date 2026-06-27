@@ -5,6 +5,11 @@
    light/dark theme still styles the page chrome (header, lobby).
    ============================================================ */
 
+/* The [hidden] attribute must always win, even over elements that set
+   their own display (e.g. .result-overlay uses display:grid, .btn uses
+   inline-flex). Without this the result overlay shows "Winner!" on load. */
+[hidden] { display: none !important; }
+
 /* ---------- Title flourish ---------- */
 .lc-tm {
   font-size: .55em;
