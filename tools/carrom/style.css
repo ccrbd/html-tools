@@ -1,0 +1,128 @@
+/* ============================================================
+   Carrom — tool-specific styles
+   Board is rendered on <canvas> (themed in JS); this sheet
+   styles the page chrome, lobby and HUD. Site light/dark still
+   drives the surrounding page.
+   ============================================================ */
+
+/* [hidden] must always win, even over rules that set a display value. */
+[hidden] { display: none !important; }
+
+/* ---------- Lobby ---------- */
+.lobby-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+}
+.field label {
+  display: block; font-size: .82rem; color: var(--text-muted);
+  margin-bottom: 6px; font-weight: 600;
+}
+.field .hint { margin: 6px 0 0; font-size: .76rem; color: var(--text-muted); }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.seg-btn {
+  font: inherit; font-size: .9rem; padding: 9px 14px; cursor: pointer;
+  background: var(--surface); color: var(--text); border: none; border-right: 1px solid var(--border);
+}
+.seg-btn:last-child { border-right: none; }
+.seg-btn.active { background: var(--accent); color: #fff; }
+
+.lobby-toggles { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 20px; }
+.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; font-size: .92rem; }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch .track { position: relative; width: 42px; height: 24px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); transition: background .15s ease; flex: none; }
+.switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--text-muted); transition: transform .18s ease, background .18s ease; }
+.switch input:checked + .track { background: var(--accent); border-color: var(--accent); }
+.switch input:checked + .track::after { transform: translateX(18px); background: #fff; }
+.btn.big { padding: 13px 26px; font-size: 1.05rem; font-weight: 700; }
+
+/* ============================================================
+   Game stage
+   ============================================================ */
+.carrom-stage { margin-top: 6px; }
+
+/* ---------- Scoreboard ---------- */
+.scoreboard {
+  display: flex; align-items: stretch; justify-content: space-between;
+  gap: 10px; margin-bottom: 10px;
+}
+.score-side {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 8px 14px; box-shadow: var(--shadow);
+  min-width: 120px;
+}
+.score-side.right { justify-content: flex-end; }
+.score-side.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft), var(--shadow); }
+.score-side .coin-dot { font-size: 1.2rem; line-height: 1; }
+.score-side .who { font-weight: 600; color: var(--text-muted); font-size: .9rem; }
+.score-side .score { font-size: 1.6rem; font-weight: 800; min-width: 26px; text-align: center; }
+.score-mid { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.target-pill { font-size: .72rem; color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border); padding: 2px 10px; border-radius: 999px; }
+.board-msg { font-size: .85rem; font-weight: 600; text-align: center; color: var(--text); min-height: 1.2em; }
+
+/* ---------- Status row ---------- */
+.status-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.badge { font-size: .8rem; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); white-space: nowrap; }
+.turn-badge.you { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.turn-badge.bot { border-color: #e0803a; color: #cf6a22; font-weight: 700; }
+.queen-badge.covered { border-color: #cf3355; color: #cf3355; font-weight: 700; }
+.power-wrap { margin-left: auto; min-width: 120px; flex: 1; max-width: 240px; }
+.power-bar { height: 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
+.power-fill { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, #34c759, #ffcc00 55%, #ff3b30); transition: width .05s linear; }
+
+/* ---------- Board ---------- */
+.board-wrap {
+  position: relative;
+  width: min(94vw, 620px);
+  max-width: 620px;
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;
+  touch-action: none;
+}
+#board {
+  width: 100%; height: 100%;
+  display: block;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  cursor: crosshair;
+  touch-action: none;
+}
+.hint-overlay {
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+  font-size: .75rem; padding: 4px 12px; border-radius: 999px;
+  background: rgba(0,0,0,.55); color: #fff; pointer-events: none;
+  opacity: 0; transition: opacity .2s ease; white-space: nowrap;
+}
+.hint-overlay.show { opacity: 1; }
+
+/* ---------- Controls ---------- */
+.controls { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+.mini-btn {
+  font: inherit; font-size: .85rem; padding: 8px 14px; border-radius: 9px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  cursor: pointer; transition: background .15s ease, transform .1s ease;
+}
+.mini-btn:hover { background: var(--surface-2); }
+.mini-btn:active { transform: scale(.96); }
+.mini-btn[aria-pressed="false"] { opacity: .5; }
+
+/* ---------- Result overlay ---------- */
+.result-overlay {
+  position: fixed; inset: 0; z-index: 99;
+  display: grid; place-items: center;
+  background: rgba(0,0,0,.55); backdrop-filter: blur(3px);
+}
+.result-card {
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 16px;
+  padding: 26px 28px; box-shadow: var(--shadow); text-align: center; max-width: 90%;
+}
+.result-card h2 { margin: 0 0 8px; font-size: 1.6rem; }
+.result-card p { margin: 0 0 18px; color: var(--text-muted); }
+
+@media (max-width: 540px) {
+  .score-side { min-width: 96px; padding: 7px 10px; }
+  .score-side .score { font-size: 1.3rem; }
+  .power-wrap { min-width: 90px; }
+}
