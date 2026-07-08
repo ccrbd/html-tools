@@ -17,7 +17,8 @@
   <style>
     .game-wrap{display:flex;flex-direction:column;align-items:center;gap:.6rem;margin-top:.6rem}
     #gameShell{position:relative;width:100%;max-width:480px;user-select:none;-webkit-user-select:none;touch-action:none;border-radius:12px;overflow:hidden;box-shadow:0 6px 30px rgba(0,0,0,.35);background:#000}
-    #gameShell.fullscreen{max-width:none;border-radius:0}
+    #gameShell.fullscreen{max-width:none;border-radius:0;display:flex;align-items:center;justify-content:center;width:100vw;height:100vh}
+    #gameShell.fullscreen #gameCanvas{height:100vh;width:auto;max-width:100vw}
     #gameCanvas{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges;background:#000}
     .game-bar{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;width:100%;max-width:480px}
     .game-bar .btn{flex:1 1 auto;min-width:0;padding:.45rem .7rem;font-size:.85rem}
@@ -57,6 +58,7 @@
       <div class="game-bar">
         <button class="btn" id="btnSound">🔊 Sound: On</button>
         <button class="btn" id="btnMusic">🎵 Music: On</button>
+        <button class="btn" id="btnAuto">🔥 Autofire: Off</button>
         <button class="btn" id="btnFull">⛶ Fullscreen</button>
       </div>
     </div>
@@ -64,7 +66,7 @@
     <section class="panel howto" style="margin-top:1rem">
       <h2>How to use</h2>
       <ol>
-        <li><strong>Desktop:</strong> <kbd>←↑→↓</kbd>/<kbd>WASD</kbd> move · <kbd>Z</kbd>/<kbd>Space</kbd> fire (hold for autofire) · <kbd>X</kbd>/<kbd>Shift</kbd> bomb · <kbd>P</kbd>/<kbd>Esc</kbd> pause · <kbd>M</kbd> mute.</li>
+        <li><strong>Desktop:</strong> <kbd>←↑→↓</kbd>/<kbd>WASD</kbd> move · <kbd>Z</kbd>/<kbd>Space</kbd> fire · <kbd>X</kbd>/<kbd>Shift</kbd> bomb · <kbd>P</kbd>/<kbd>Esc</kbd> pause · <kbd>F</kbd> autofire · <kbd>M</kbd> mute.</li>
         <li><strong>Mobile:</strong> drag anywhere to fly (autofire is on), tap the red button to bomb.</li>
         <li>Grab <strong>P</strong> to power your shot up to level 5, <strong>B</strong> for extra bombs, ⭐ medals for score, <strong>1UP</strong> for lives.</li>
         <li>Each stage ends with a boss — watch its health bar and dodge the patterns. Bombs also erase enemy bullets.</li>
@@ -564,6 +566,7 @@
     keys[e.key.toLowerCase()] = true;
     if (e.key === "Escape" || e.key.toLowerCase() === "p") togglePause();
     if (e.key.toLowerCase() === "m") { toggleSound(); }
+    if (e.key.toLowerCase() === "f") { toggleAuto(); }
     handleMenuKey(e);
   });
   addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
@@ -638,14 +641,15 @@
   const dscale = () => 1 + (stageNum - 1) * 0.22; // difficulty scale
   function mkEnemy(type, x, y, opts) {
     opts = opts || {};
+    // HP tiers: popcorn dies to 1 hit, mid enemies take a burst, big ones soak.
     const base = {
-      dart:   { hp: 2,  r: 14, sc: 150, spr: SPR.dart },
       gnat:   { hp: 1,  r: 13, sc: 100, spr: SPR.gnat },
-      heli:   { hp: 6,  r: 16, sc: 300, spr: null },
-      jet:    { hp: 8,  r: 16, sc: 400, spr: SPR.jet },
-      bomber: { hp: 26, r: 26, sc: 800, spr: SPR.bomber },
-      tank:   { hp: 7,  r: 15, sc: 200, spr: SPR.tank, ground: true },
-      turret: { hp: 9,  r: 14, sc: 250, spr: SPR.turret, ground: true }
+      dart:   { hp: 3,  r: 14, sc: 150, spr: SPR.dart },
+      heli:   { hp: 12, r: 16, sc: 300, spr: null },
+      jet:    { hp: 16, r: 16, sc: 400, spr: SPR.jet },
+      tank:   { hp: 14, r: 15, sc: 200, spr: SPR.tank, ground: true },
+      turret: { hp: 18, r: 14, sc: 250, spr: SPR.turret, ground: true },
+      bomber: { hp: 45, r: 26, sc: 800, spr: SPR.bomber }
     }[type];
     const e = Object.assign({ type, x, y, t: 0, fireT: rnd(0.2, 1.2), dead: false,
       hp: Math.ceil(base.hp * dscale()), r: base.r, sc: base.sc, spr: base.spr, ground: !!base.ground,
@@ -913,7 +917,7 @@
     if (bombFx.kind === "wave") {
       const R = 620 * (bombFx.t / 1.1);
       const hitAll = (o, dmg) => { if (!bombFx.hitSet.has(o) && dist2(o.x, o.y, bombFx.cx, bombFx.cy) < R * R) { bombFx.hitSet.add(o); damage(o, dmg); } };
-      for (const e of enemies) hitAll(e, 10);
+      for (const e of enemies) hitAll(e, 20);
       if (boss && !boss.dying) hitAll(boss, 60);
     } else if (bombFx.kind === "swarm") {
       for (const m of bombFx.missiles) {
@@ -936,7 +940,7 @@
         bombFx.boomed = true;
         AudioSys.bigBoom(); shakeT = 1.0; flashT = 0.4; flashCol = "#fff7d0";
         for (let i = 0; i < 7; i++) fx.push(mkBoom(rnd(60, W - 60), rnd(60, H * 0.7), rnd(0.6, 1.1), true));
-        for (const e of enemies) damage(e, 18);
+        for (const e of enemies) damage(e, 30);
         if (boss && !boss.dying) damage(boss, 95);
       }
     }
@@ -978,7 +982,13 @@
     }
   }
   // ---------- backgrounds (procedural, deterministic by scroll row) ----------
-  const SCROLL_SPEED = 90;
+  const SCROLL_SPEED = 55;
+  // Continuous row iterator: screenY = R*rh + sc, so each world-row R keeps its
+  // features pinned as it drifts smoothly down the screen (no re-hash popping).
+  function bgRows(sc, rh, fn) {
+    const start = Math.floor((-sc - rh) / rh), end = Math.floor((H - sc) / rh) + 1;
+    for (let R = start; R <= end; R++) fn(R, R * rh + sc);
+  }
   const STAGE_META = [null,
     { name: "PACIFIC ASSAULT",  song: "st1" },
     { name: "DESERT STORM",     song: "st2" },
@@ -989,14 +999,12 @@
   // Each bg draws full frame given scroll px. Features keyed on world-row index → deterministic.
   function bgOcean(sc, t) {
     cx.fillStyle = "#123a6e"; cx.fillRect(0, 0, W, H);
-    // wave shimmer lines
-    for (let y = -1; y < H / 32 + 1; y++) {
-      const wy = y * 32 + (sc % 32);
-      const row = Math.floor((sc + y * 32) / 32);
+    bgRows(sc, 32, (row, wy) => {
+      // wave shimmer lines (drift gently sideways)
       cx.fillStyle = "rgba(80,160,220,.18)";
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 4; i++) {
         const h1 = hash(row * 31 + i * 7);
-        cx.fillRect(((h1 * W * 1.7 + t * (10 + i * 4)) % (W + 60)) - 30, wy + i * 5, 26 + h1 * 30, 2);
+        cx.fillRect(((h1 * W * 1.7 + t * (6 + i * 3)) % (W + 60)) - 30, wy + i * 7, 26 + h1 * 30, 2);
       }
       // islands
       const hI = hash(row * 13 + 5);
@@ -1006,19 +1014,17 @@
         cx.fillStyle = "#3e7a3c"; cx.beginPath(); cx.ellipse(ix, wy + 8, iw * 0.65, 14, 0, 0, TAU); cx.fill();
       }
       // ship wakes
-      const hS = hash(row * 23 + 9);
-      if (hS < 0.05) {
+      if (hash(row * 23 + 9) < 0.05) {
         const sx = hash(row * 29 + 3) * (W - 80) + 40;
         cx.fillStyle = "#6a7684"; cx.fillRect(sx - 8, wy, 16, 42);
         cx.fillStyle = "#8a96a4"; cx.fillRect(sx - 5, wy + 6, 10, 26);
         cx.fillStyle = "rgba(220,235,245,.35)"; cx.fillRect(sx - 3, wy + 42, 6, 24);
       }
-    }
+    });
   }
   function bgDesert(sc, t) {
     cx.fillStyle = "#c89a58"; cx.fillRect(0, 0, W, H);
-    for (let y = -1; y < H / 40 + 1; y++) {
-      const wy = y * 40 + (sc % 40), row = Math.floor((sc + y * 40) / 40);
+    bgRows(sc, 40, (row, wy) => {
       // dune bands
       cx.fillStyle = "rgba(160,110,50,.25)";
       const dh = hash(row * 11 + 2);
@@ -1036,17 +1042,16 @@
         cx.fillStyle = "rgba(90,70,40,.5)"; cx.fillRect(W * 0.7, wy, 34, 40);
         cx.fillStyle = "rgba(220,200,150,.5)"; cx.fillRect(W * 0.7 + 15, wy + 8, 4, 12);
       }
-    }
+    });
   }
   function bgCity(sc, t) {
     cx.fillStyle = "#0c1022"; cx.fillRect(0, 0, W, H);
-    for (let y = -1; y < H / 48 + 1; y++) {
-      const wy = y * 48 + (sc % 48), row = Math.floor((sc + y * 48) / 48);
+    bgRows(sc, 48, (row, wy) => {
       for (let bx = 0; bx < 6; bx++) {
         const h1 = hash(row * 37 + bx * 11);
         if (h1 < 0.62) {
           const x = bx * 80 + hash(row * 41 + bx) * 30, bw = 36 + h1 * 44, bh = 40 + hash(row + bx * 3) * 8;
-          cx.fillStyle = ["#1a2138", "#202a48", "#171d30"][bx % 3];
+          cx.fillStyle = ["#1a2138", "#202a48", "#171d30"][((bx % 3) + 3) % 3];
           cx.fillRect(x, wy, bw, bh);
           cx.fillStyle = "rgba(255,220,120,.75)";
           for (let wx = 4; wx < bw - 5; wx += 9) for (let wyy = 5; wyy < bh - 6; wyy += 11)
@@ -1055,16 +1060,15 @@
       }
       if (hash(row * 61 + 2) < 0.25) { // avenue
         cx.fillStyle = "#0a0d18"; cx.fillRect(0, wy + 38, W, 10);
-        const cxr = (t * 120 + hash(row) * W) % (W + 40) - 20;
+        const cxr = (t * 90 + hash(row) * W) % (W + 40) - 20;
         cx.fillStyle = "#ffd23e"; cx.fillRect(cxr, wy + 41, 8, 4);
       }
-    }
+    });
   }
   function bgJungle(sc, t) {
     cx.fillStyle = "#1e4020"; cx.fillRect(0, 0, W, H);
-    // river snake
-    for (let y = -1; y < H / 24 + 1; y++) {
-      const wy = y * 24 + (sc % 24), row = Math.floor((sc + y * 24) / 24);
+    bgRows(sc, 24, (row, wy) => {
+      // river snake
       const rx = W / 2 + Math.sin(row * 0.35) * 120;
       cx.fillStyle = "#2e6aa8"; cx.fillRect(rx - 46, wy, 92, 25);
       cx.fillStyle = "rgba(150,200,240,.25)";
@@ -1083,7 +1087,7 @@
         const hx = hash(row * 57 + 3) * (W - 100) + 50;
         if (Math.abs(hx - rx) > 80) { cx.fillStyle = "#8a6a3c"; cx.fillRect(hx - 12, wy + 4, 24, 16); cx.fillStyle = "#5e4526"; cx.fillRect(hx - 15, wy, 30, 7); }
       }
-    }
+    });
   }
   function bgSpace(sc, t) {
     cx.fillStyle = "#05060f"; cx.fillRect(0, 0, W, H);
@@ -1095,9 +1099,8 @@
       cx.fillStyle = `rgba(${180 + b * 75},${190 + b * 65},255,${b})`;
       cx.fillRect(x, y, sp > 1.2 ? 3 : 2, sp > 1.2 ? 3 : 2);
     }
-    // fortress plating drifts in during second half
-    for (let y = -1; y < H / 64 + 1; y++) {
-      const wy = y * 64 + (sc % 64), row = Math.floor((sc + y * 64) / 64);
+    // fortress plating
+    bgRows(sc, 64, (row, wy) => {
       if (hash(row * 71 + 4) < 0.35) {
         const px2 = hash(row * 73 + 8) * (W - 160);
         cx.fillStyle = "#181c2c"; cx.fillRect(px2, wy, 150, 58);
@@ -1105,7 +1108,7 @@
         cx.fillStyle = hash(row * 77) < 0.5 ? "#ff5c5c" : "#5cffb0";
         if (Math.sin(t * 4 + row) > 0) cx.fillRect(px2 + 12, wy + 12, 6, 6);
       }
-    }
+    });
   }
   const BG = [null, bgOcean, bgDesert, bgCity, bgJungle, bgSpace];
 
@@ -1192,7 +1195,7 @@
     player.y = clamp(player.y, 24, H - 24);
     player.inv = Math.max(0, player.inv - dt);
     player.fireCd -= dt;
-    const firing = input.fire || input.touch;
+    const firing = input.fire || input.touch || autoFire;
     if (firing && player.fireCd <= 0) {
       player.plane.fire(player, player.power, shots);
       player.fireCd = player.plane.fireRate;
@@ -1494,11 +1497,16 @@
   // ---------- buttons ----------
   const btnSound = document.getElementById("btnSound");
   const btnMusic = document.getElementById("btnMusic");
+  const btnAuto = document.getElementById("btnAuto");
+  let autoFire = store.auto === true;
   function refreshBtns() {
     btnSound.textContent = AudioSys.sfxOn ? "🔊 Sound: On" : "🔇 Sound: Off";
     btnMusic.textContent = AudioSys.musicOn ? "🎵 Music: On" : "🎵 Music: Off";
+    btnAuto.textContent = autoFire ? "🔥 Autofire: On" : "🔥 Autofire: Off";
   }
   function toggleSound() { AudioSys.sfxOn = !AudioSys.sfxOn; store.sfx = AudioSys.sfxOn; save(); refreshBtns(); }
+  function toggleAuto() { autoFire = !autoFire; store.auto = autoFire; save(); refreshBtns(); }
+  btnAuto.addEventListener("click", toggleAuto);
   btnSound.addEventListener("click", () => { AudioSys.ensure(); toggleSound(); });
   btnMusic.addEventListener("click", () => { AudioSys.ensure(); AudioSys.musicOn = !AudioSys.musicOn; store.music = AudioSys.musicOn; save(); refreshBtns(); });
   document.getElementById("btnFull").addEventListener("click", () => {
