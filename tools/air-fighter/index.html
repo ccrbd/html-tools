@@ -26,6 +26,9 @@
     #bombBtn:active{background:rgba(255,60,60,.6)}
     #pauseBtn{position:absolute;left:10px;bottom:14px;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);color:#fff;font-size:15px;display:none;align-items:center;justify-content:center;z-index:5;-webkit-tap-highlight-color:transparent}
     .touch #bombBtn,.touch #pauseBtn{display:flex}
+    #cheatBox{position:absolute;top:16%;left:50%;transform:translateX(-50%);display:none;z-index:8;background:rgba(6,10,24,.94);border:2px solid #8ff3ff;border-radius:8px;padding:10px 14px;box-shadow:0 4px 24px rgba(0,0,0,.6)}
+    #cheatBox .cb-title{color:#8ff3ff;font:700 11px monospace;letter-spacing:2px;margin-bottom:6px;text-align:center}
+    #cheatInput{background:#050810;color:#8fff8a;border:1px solid #2a4a6a;border-radius:4px;font:700 16px monospace;padding:6px 8px;width:180px;text-transform:uppercase;text-align:center;outline:none}
     @media (min-height:800px){ #gameShell{max-width:520px} .game-bar{max-width:520px} }
     kbd{background:var(--surface-2,#2223);border:1px solid var(--border,#8884);border-bottom-width:2px;border-radius:4px;padding:0 .35em;font-size:.85em}
   </style>
@@ -54,6 +57,10 @@
         <canvas id="gameCanvas" width="480" height="640"></canvas>
         <button id="bombBtn" aria-label="Bomb">BOMB</button>
         <button id="pauseBtn" aria-label="Pause">⏸</button>
+        <div id="cheatBox">
+          <div class="cb-title">📻 HQ RADIO</div>
+          <input id="cheatInput" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="12" placeholder="SAY AGAIN?" />
+        </div>
       </div>
       <div class="game-bar">
         <button class="btn" id="btnSound">🔊 Sound: On</button>
@@ -71,6 +78,7 @@
         <li>Grab <strong>P</strong> to power your shot up to level 5, <strong>B</strong> for extra bombs, ⭐ medals for score, <strong>1UP</strong> for lives.</li>
         <li>Each stage ends with a boss — watch its health bar and dodge the patterns. Bombs also erase enemy bullets.</li>
         <li>Your fighter choice, hi-score and sound settings are remembered on this device.</li>
+        <li style="opacity:.75"><em>Hangar rumor: HQ still listens on an old radio channel — the wavy key beside <kbd>1</kbd> opens it (pilots on touch screens tap their score three times). They say HQ sends exactly what you ask for… but supply drops never make the record books.</em></li>
       </ol>
     </section>
   </main>
@@ -562,6 +570,7 @@
   const keys = {};
   const input = { dx: 0, dy: 0, fire: false, bomb: false, touch: false };
   addEventListener("keydown", e => {
+    if (e.key === "~" || e.key === "`" || e.code === "Backquote") { e.preventDefault(); openCheat(); return; }
     if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," ","Shift"].includes(e.key)) e.preventDefault();
     keys[e.key.toLowerCase()] = true;
     if (e.key === "Escape" || e.key.toLowerCase() === "p") togglePause();
@@ -583,10 +592,17 @@
     const r = cv.getBoundingClientRect();
     return { x: (t.clientX - r.left) / r.width * W, y: (t.clientY - r.top) / r.height * H };
   }
+  let scoreTaps = [];
   cv.addEventListener("touchstart", e => {
     e.preventDefault(); document.body.classList.add("touch"); input.touch = true;
     AudioSys.ensure();
     const p = canvasPos(e.changedTouches[0]);
+    // triple-tap on the score (top-left) opens the HQ radio
+    if (p.x < 140 && p.y < 44) {
+      const n = performance.now();
+      scoreTaps = scoreTaps.filter(ts => n - ts < 1300); scoreTaps.push(n);
+      if (scoreTaps.length >= 3) { scoreTaps = []; openCheat(); return; }
+    }
     if (state === "play") { touchTarget = p; }
     else tapAdvance(p);
   }, { passive: false });
@@ -838,7 +854,7 @@
   function mkPickup(x, y, kind) { return { x, y, kind, t: rnd(0, TAU), vy: 60 }; }
   function addScore(n) {
     score += n;
-    if (score > hiScore) { hiScore = score; store.hi = hiScore; }
+    if (score > hiScore && !cheatUsed) { hiScore = score; store.hi = hiScore; }
     if (score >= nextExtend) { nextExtend += 200000; player.lives++; AudioSys.extend(); floats.push({ x: player.x, y: player.y - 30, txt: "EXTEND!", t: 0, col: "#8fff8a" }); }
   }
   function drawFx(f) {
@@ -1326,6 +1342,8 @@
     text("" + score, 12, 18, 18, "#fff", "left");
     text("HI " + hiScore, W - 12, 18, 14, "#ffd23e", "right");
     if (!boss) text("STAGE " + stageNum, W / 2, 18, 13, "#9ab", "center");
+    if (cheatUsed) text("SUPPLY RUN — NO RECORD", W / 2, 36, 9, "#ff6a9c", "center");
+    if (player.alive && player.inv > 3.2) text("SHIELD " + Math.ceil(player.inv), player.x, player.y + 34, 10, "#8ff3ff");
     // lives (mini planes)
     const mini = player.plane.sprites()[1];
     for (let i = 0; i < Math.min(player.lives - 1, 5); i++)
@@ -1434,7 +1452,8 @@
     cx.fillStyle = "rgba(4,4,10,.75)"; cx.fillRect(0, 0, W, H);
     text("GAME OVER", W / 2, H * 0.32, 44, "#ff5c5c");
     text("SCORE  " + score, W / 2, H * 0.45, 20, "#fff");
-    if (score >= hiScore && score > 0) text("★ NEW HI-SCORE! ★", W / 2, H * 0.52, 16, "#ffd23e");
+    if (score >= hiScore && score > 0 && !cheatUsed) text("★ NEW HI-SCORE! ★", W / 2, H * 0.52, 16, "#ffd23e");
+    if (cheatUsed) text("SUPPLY RUNS DON'T MAKE THE RECORD BOOKS", W / 2, H * 0.52, 11, "#ff6a9c");
     if (Math.floor(t * 2) % 2 === 0) {
       text(document.body.classList.contains("touch") ? "TAP TO CONTINUE (STAGE " + stageNum + ")" : "Z — CONTINUE (STAGE " + stageNum + ")", W / 2, H * 0.64, 16, "#8fff8a");
       text(document.body.classList.contains("touch") ? "" : "ESC — TITLE", W / 2, H * 0.70, 14, "#9ab");
@@ -1458,7 +1477,7 @@
   function toSelect() { state = "select"; stateT = 0; AudioSys.startSong(SONGS.title); }
   function launchGame() {
     player.plane = PLANES[selIdx]; store.plane = selIdx; save();
-    score = 0; nextExtend = 100000;
+    score = 0; nextExtend = 100000; cheatUsed = false;
     player.lives = 3; player.bombs = 3; player.power = 1;
     startStage(1);
   }
@@ -1493,6 +1512,40 @@
     paused = !paused;
     if (paused) AudioSys.stopSong(); else AudioSys.startSong(SONGS[boss ? "boss" : STAGE_META[stageNum].song]);
   }
+
+  // ---------- HQ radio (cheat console) ----------
+  let cheatUsed = false;
+  const cheatBox = document.getElementById("cheatBox");
+  const cheatInput = document.getElementById("cheatInput");
+  function openCheat() {
+    if (cheatBox.style.display === "block") return;
+    cheatBox.style.display = "block";
+    if (state === "play" && !paused) togglePause();
+    cheatInput.value = "";
+    setTimeout(() => cheatInput.focus(), 50);
+  }
+  function closeCheat() {
+    cheatBox.style.display = "none";
+    cheatInput.blur();
+    if (state === "play" && paused) togglePause();
+  }
+  function applyCheat(txt) {
+    const c = (txt || "").trim().toLowerCase();
+    if (state !== "play") return;
+    const drop = (msg, col, fn) => { cheatUsed = true; fn(); AudioSys.power(); floats.push({ x: player.x, y: player.y - 40, txt: msg, t: 0, col }); };
+    if (c === "bomb") drop("SUPPLY: BOMB +1", "#ffd23e", () => { player.bombs = Math.min(9, player.bombs + 1); });
+    else if (c === "power") drop("SUPPLY: POWER UP", "#ff8a8a", () => { player.power = Math.min(5, player.power + 1); });
+    else if (c === "life") drop("SUPPLY: 1UP", "#8fff8a", () => { player.lives++; });
+    else if (c === "imune" || c === "immune") drop("SHIELD: 30 SEC", "#8ff3ff", () => { player.inv = 30; });
+    else if (c) { AudioSys.hit(); floats.push({ x: player.x, y: player.y - 40, txt: "…STATIC…", t: 0, col: "#9ab" }); }
+  }
+  cheatInput.addEventListener("keydown", e => {
+    e.stopPropagation();
+    if (e.key === "Enter") { applyCheat(cheatInput.value); closeCheat(); }
+    else if (e.key === "Escape" || e.key === "~" || e.key === "`") { e.preventDefault(); closeCheat(); }
+  });
+  cheatInput.addEventListener("keyup", e => e.stopPropagation());
+  cheatInput.addEventListener("blur", () => { if (cheatBox.style.display === "block") closeCheat(); });
 
   // ---------- buttons ----------
   const btnSound = document.getElementById("btnSound");
