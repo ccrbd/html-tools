@@ -4,7 +4,7 @@ A growing collection of free, privacy-friendly browser tools. No sign-up, no
 tracking — everything runs locally in the browser. Pure HTML/CSS/JS, no build
 step.
 
-**Live site:** https://ccrbd.github.io/HTML-Tools/
+**Live site:** https://ccrbd.github.io/html-tools/
 
 ## Structure
 
