@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Talking Miu 🐱</title>
+<style>
+  :root{
+    --bg1:#FFF3DF; --bg2:#FFD9A3; --floor:#F5B963;
+    --panel:rgba(255,255,255,.75); --text:#4A2E15; --sub:#8a6a45;
+    --accent:#FF7043; --accent2:#FFB300;
+    --btn:#FF7043; --btn-text:#fff;
+    --shadow:rgba(120,70,20,.25);
+    --star-op:0;
+  }
+  [data-theme="dark"]{
+    --bg1:#1B1035; --bg2:#311B58; --floor:#241244;
+    --panel:rgba(40,25,80,.6); --text:#FFE9C9; --sub:#B9A3E8;
+    --accent:#FF8A5C; --accent2:#FFC94D;
+    --btn:#FF8A5C; --btn-text:#2A123B;
+    --shadow:rgba(0,0,0,.5);
+    --star-op:1;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent}
+  html,body{height:100%; overflow:hidden}
+  body{
+    font-family:ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN","Quicksand","Trebuchet MS","Comic Sans MS",sans-serif;
+    background:linear-gradient(180deg,var(--bg1) 0%,var(--bg2) 72%,var(--floor) 72%,var(--floor) 100%);
+    color:var(--text);
+    display:flex; flex-direction:column; align-items:center;
+    user-select:none; -webkit-user-select:none;
+    transition:background .5s;
+    position:relative;
+  }
+  /* stars for dark mode */
+  .stars{position:absolute; inset:0; pointer-events:none; opacity:var(--star-op); transition:opacity .6s}
+  .stars span{position:absolute; width:4px; height:4px; border-radius:50%; background:#FFE9A8; animation:twinkle 2.4s infinite alternate}
+  @keyframes twinkle{from{opacity:.2; transform:scale(.7)} to{opacity:1; transform:scale(1.15)}}
+
+  header{
+    width:100%; max-width:760px; display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px; z-index:5;
+  }
+  h1{font-size:clamp(1.15rem,4vw,1.6rem); letter-spacing:.5px}
+  h1 .miu{color:var(--accent)}
+  .top-btns{display:flex; gap:10px}
+  .chip{
+    border:none; border-radius:999px; padding:9px 14px; font:inherit; font-size:.95rem; font-weight:700;
+    background:var(--panel); color:var(--text); box-shadow:0 3px 10px var(--shadow);
+    cursor:pointer; backdrop-filter:blur(6px);
+  }
+  .chip:active{transform:scale(.94)}
+
+  .stage{flex:1; width:100%; max-width:640px; display:flex; align-items:center; justify-content:center; position:relative; z-index:2; min-height:0}
+  #cat{width:min(88vw,60vh); height:auto; touch-action:manipulation}
+  #cat .hit{cursor:pointer}
+
+  .bubble{
+    position:absolute; top:2%; left:50%; transform:translateX(-50%) scale(0);
+    background:var(--panel); color:var(--text); padding:10px 18px; border-radius:20px;
+    font-weight:800; font-size:clamp(1rem,4vw,1.3rem); box-shadow:0 4px 14px var(--shadow);
+    transition:transform .25s cubic-bezier(.34,1.6,.5,1); white-space:nowrap; backdrop-filter:blur(6px);
+  }
+  .bubble.show{transform:translateX(-50%) scale(1)}
+  .bubble::after{content:""; position:absolute; bottom:-8px; left:50%; transform:translateX(-50%);
+    border:9px solid transparent; border-top-color:var(--panel); border-bottom:0}
+
+  .controls{
+    width:100%; max-width:760px; z-index:5;
+    padding:10px 16px calc(18px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+  }
+  .status{font-size:.95rem; font-weight:700; color:var(--sub); min-height:1.3em; text-align:center}
+
+  .mic-row{display:flex; align-items:center; gap:22px}
+  .side-btn{
+    width:56px; height:56px; border-radius:50%; border:none; font-size:1.5rem; cursor:pointer;
+    background:var(--panel); box-shadow:0 4px 12px var(--shadow); backdrop-filter:blur(6px);
+  }
+  .side-btn:active{transform:scale(.9)}
+  #micBtn{
+    width:86px; height:86px; border-radius:50%; border:none; cursor:pointer;
+    background:radial-gradient(circle at 32% 28%, #ffb28e, var(--btn));
+    color:var(--btn-text); font-size:2.1rem; box-shadow:0 6px 18px var(--shadow);
+    transition:transform .15s; position:relative;
+  }
+  #micBtn:active{transform:scale(.92)}
+  #micBtn.on{animation:pulse 1.4s infinite}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(255,112,67,.55), 0 6px 18px var(--shadow)}
+    70%{box-shadow:0 0 0 22px rgba(255,112,67,0), 0 6px 18px var(--shadow)}
+    100%{box-shadow:0 0 0 0 rgba(255,112,67,0), 0 6px 18px var(--shadow)}
+  }
+
+  .pitch{
+    width:min(92%,420px); background:var(--panel); border-radius:16px; padding:10px 16px;
+    box-shadow:0 3px 10px var(--shadow); display:flex; align-items:center; gap:12px; backdrop-filter:blur(6px);
+  }
+  .pitch label{font-size:1.2rem}
+  .pitch input{flex:1; accent-color:var(--accent); height:26px}
+
+  @media (prefers-reduced-motion:reduce){
+    .stars span,#micBtn.on{animation:none}
+    #tail,#body-group{animation:none !important}
+  }
+  /* idle animations */
+  #tail{transform-origin:270px 372px; animation:tailwag 3.2s ease-in-out infinite}
+  @keyframes tailwag{0%,100%{transform:rotate(0)} 50%{transform:rotate(14deg)}}
+  #head-group{transform-origin:200px 170px; transition:transform .2s}
+  .talking #head-group{animation:bop .3s ease-in-out infinite alternate}
+  @keyframes bop{from{transform:rotate(-2deg)} to{transform:rotate(2deg)}}
+  #cat.bounce{animation:bounce .45s}
+  @keyframes bounce{0%,100%{transform:translateY(0)} 40%{transform:translateY(-26px) scale(1.03)}}
+  #cat.wob{animation:wob .5s}
+  @keyframes wob{0%,100%{transform:rotate(0)} 25%{transform:rotate(-4deg)} 65%{transform:rotate(4deg)}}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+
+<header>
+  <h1>Talking <span class="miu">Miu</span> 🐾</h1>
+  <div class="top-btns">
+    <button class="chip" id="themeBtn" title="Light / dark">🌙</button>
+  </div>
+</header>
+
+<div class="stage">
+  <div class="bubble" id="bubble">মিউ! 🐟</div>
+
+  <!-- THE CAT -->
+  <svg id="cat" viewBox="0 0 400 470" xmlns="http://www.w3.org/2000/svg" aria-label="Miu the cat">
+    <!-- tail -->
+    <path id="tail" d="M268 372 Q 350 360 344 290 Q 342 262 318 260" fill="none" stroke="#E8833A" stroke-width="26" stroke-linecap="round"/>
+    <path d="M318 260 q -12 -2 -16 8" stroke="#C96A28" stroke-width="26" stroke-linecap="round" fill="none"/>
+
+    <g id="body-group">
+      <!-- body -->
+      <ellipse class="hit" data-zone="belly" cx="200" cy="360" rx="105" ry="95" fill="#F09A4B"/>
+      <ellipse class="hit" data-zone="belly" cx="200" cy="382" rx="62" ry="58" fill="#FFE3BC"/>
+      <!-- feet -->
+      <ellipse class="hit" data-zone="foot" cx="142" cy="446" rx="34" ry="20" fill="#E8833A"/>
+      <ellipse class="hit" data-zone="foot" cx="258" cy="446" rx="34" ry="20" fill="#E8833A"/>
+      <g stroke="#B85F20" stroke-width="3" stroke-linecap="round">
+        <path d="M132 452 v-8 M142 454 v-9 M152 452 v-8 M248 452 v-8 M258 454 v-9 M268 452 v-8"/>
+      </g>
+      <!-- arms -->
+      <ellipse cx="112" cy="356" rx="24" ry="42" fill="#E8833A" transform="rotate(18 112 356)"/>
+      <ellipse cx="288" cy="356" rx="24" ry="42" fill="#E8833A" transform="rotate(-18 288 356)"/>
+    </g>
+
+    <g id="head-group">
+      <!-- ears -->
+      <g class="hit" data-zone="head">
+        <path id="earL" d="M108 96 L84 24 L166 62 Z" fill="#E8833A"/>
+        <path d="M112 84 L98 44 L146 66 Z" fill="#FFC3A0"/>
+        <path id="earR" d="M292 96 L316 24 L234 62 Z" fill="#E8833A"/>
+        <path d="M288 84 L302 44 L254 66 Z" fill="#FFC3A0"/>
+      </g>
+      <!-- head -->
+      <ellipse class="hit" data-zone="head" cx="200" cy="150" rx="112" ry="98" fill="#F09A4B"/>
+      <!-- stripes -->
+      <g stroke="#D97A2E" stroke-width="9" stroke-linecap="round" fill="none">
+        <path d="M186 58 q 14 -12 28 0"/>
+        <path d="M170 66 q 30 -22 60 0"/>
+        <path d="M94 140 h 26 M96 160 h 22 M306 140 h -26 M304 160 h -22"/>
+      </g>
+      <!-- cheeks -->
+      <circle cx="128" cy="186" r="14" fill="#FF9E80" opacity=".55"/>
+      <circle cx="272" cy="186" r="14" fill="#FF9E80" opacity=".55"/>
+      <!-- eyes -->
+      <g id="eyes">
+        <g id="eyeL"><ellipse cx="158" cy="142" rx="24" ry="28" fill="#fff"/>
+          <circle class="pupil" cx="162" cy="148" r="12" fill="#33231a"/>
+          <circle cx="167" cy="142" r="4.5" fill="#fff"/></g>
+        <g id="eyeR"><ellipse cx="242" cy="142" rx="24" ry="28" fill="#fff"/>
+          <circle class="pupil" cx="246" cy="148" r="12" fill="#33231a"/>
+          <circle cx="251" cy="142" r="4.5" fill="#fff"/></g>
+        <g id="lids" opacity="0">
+          <path d="M134 142 q 24 14 48 0" stroke="#C96A28" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <path d="M218 142 q 24 14 48 0" stroke="#C96A28" stroke-width="7" fill="none" stroke-linecap="round"/>
+        </g>
+      </g>
+      <!-- nose + mouth -->
+      <path d="M191 186 h18 l-9 12 Z" fill="#E85D5D"/>
+      <g id="mouthClosed"><path d="M200 198 q -8 14 -22 8 M200 198 q 8 14 22 8" stroke="#8a4a1c" stroke-width="6" fill="none" stroke-linecap="round"/></g>
+      <ellipse id="mouthOpen" cx="200" cy="212" rx="24" ry="5" fill="#7C2D2D" opacity="0"/>
+      <ellipse id="tongue" cx="200" cy="216" rx="13" ry="3" fill="#FF7B7B" opacity="0"/>
+      <!-- whiskers -->
+      <g stroke="#B85F20" stroke-width="4" stroke-linecap="round" opacity=".85">
+        <path d="M96 190 L44 180 M98 204 L48 206 M304 190 L356 180 M302 204 L352 206"/>
+      </g>
+    </g>
+  </svg>
+</div>
+
+<div class="controls">
+  <div class="status" id="status">Tap the mic — then say something!</div>
+  <div class="mic-row">
+    <button class="side-btn" id="fishBtn" title="Feed Miu">🐟</button>
+    <button id="micBtn" title="Toggle listening">🎤</button>
+    <button class="side-btn" id="petBtn" title="Pet Miu">🖐️</button>
+  </div>
+  <div class="pitch">
+    <label title="Deep voice">🐻</label>
+    <input type="range" id="pitch" min="60" max="200" value="160" aria-label="Voice pitch">
+    <label title="Squeaky voice">🐿️</label>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const statusEl = $('status'), micBtn = $('micBtn'), bubble = $('bubble'), cat = $('cat');
+
+  /* ---------- theme ---------- */
+  const root = document.documentElement;
+  const setTheme = t => { root.dataset.theme = t; $('themeBtn').textContent = t === 'dark' ? '☀️' : '🌙'; };
+  setTheme(matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  $('themeBtn').onclick = () => setTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
+
+  /* stars */
+  const stars = $('stars');
+  for (let i = 0; i < 26; i++) {
+    const s = document.createElement('span');
+    s.style.left = Math.random()*100 + '%';
+    s.style.top = Math.random()*60 + '%';
+    s.style.animationDelay = (Math.random()*2) + 's';
+    stars.appendChild(s);
+  }
+
+  /* ---------- speech bubble ---------- */
+  let bubbleT;
+  const say = (txt, ms=1500) => {
+    bubble.textContent = txt; bubble.classList.add('show');
+    clearTimeout(bubbleT); bubbleT = setTimeout(()=>bubble.classList.remove('show'), ms);
+  };
+
+  /* ---------- audio core ---------- */
+  let ac, micStream, srcNode, procNode, listening = false, state = 'idle';
+  const SAMPLE_CHUNK = 2048;
+  let ring = [], ringLen = 0;            // pre-roll ring buffer (~0.35s)
+  let rec = [], recording = false, silentMs = 0, speechMs = 0;
+  const THRESH = 0.02, SILENCE_STOP = 850, MIN_SPEECH = 220, PREROLL = 0.35;
+
+  const ensureAC = () => { if (!ac) ac = new (window.AudioContext||window.webkitAudioContext)(); if (ac.state==='suspended') ac.resume(); };
+
+  async function startListening() {
+    ensureAC();
+    try {
+      micStream = micStream || await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true } });
+    } catch (e) {
+      statusEl.textContent = '🚫 Mic blocked — allow microphone access to play.';
+      return;
+    }
+    srcNode = ac.createMediaStreamSource(micStream);
+    procNode = ac.createScriptProcessor(SAMPLE_CHUNK, 1, 1);
+    srcNode.connect(procNode); procNode.connect(ac.destination); // needed on some browsers; proc outputs silence
+    procNode.onaudioprocess = onAudio;
+    listening = true; state = 'listen';
+    micBtn.classList.add('on'); micBtn.textContent = '👂';
+    statusEl.textContent = 'Miu is listening… say something!';
+  }
+
+  function stopListening() {
+    listening = false; state = 'idle'; recording = false; rec = []; ring = []; ringLen = 0;
+    if (procNode) { procNode.disconnect(); procNode.onaudioprocess = null; procNode = null; }
+    if (srcNode) { srcNode.disconnect(); srcNode = null; }
+    micBtn.classList.remove('on'); micBtn.textContent = '🎤';
+    statusEl.textContent = 'Tap the mic — then say something!';
+  }
+
+  function onAudio(e) {
+    if (state !== 'listen') return;
+    const inp = e.inputBuffer.getChannelData(0);
+    const copy = new Float32Array(inp);
+    // silence the output
+    e.outputBuffer.getChannelData(0).fill(0);
+    // rms
+    let sum = 0; for (let i=0;i<copy.length;i++) sum += copy[i]*copy[i];
+    const rms = Math.sqrt(sum/copy.length);
+    const chunkMs = copy.length / ac.sampleRate * 1000;
+
+    // maintain pre-roll ring
+    ring.push(copy); ringLen += copy.length;
+    while (ringLen > PREROLL * ac.sampleRate && ring.length > 1) ringLen -= ring.shift().length;
+
+    if (!recording) {
+      if (rms > THRESH) {
+        recording = true; rec = ring.slice(); silentMs = 0; speechMs = 0;
+        statusEl.textContent = '🎙️ Recording…';
+        openEyesWide(true);
+      }
+    } else {
+      rec.push(copy);
+      if (rms > THRESH) { silentMs = 0; speechMs += chunkMs; }
+      else {
+        silentMs += chunkMs;
+        if (silentMs > SILENCE_STOP) {
+          recording = false; openEyesWide(false);
+          if (speechMs > MIN_SPEECH) playBack(rec);
+          else { rec = []; statusEl.textContent = 'Miu is listening… say something!'; }
+        }
+      }
+    }
+  }
+
+  function playBack(chunks) {
+    state = 'playing';
+    statusEl.textContent = '😹 Miu says it back!';
+    const total = chunks.reduce((a,c)=>a+c.length,0);
+    const buf = ac.createBuffer(1, total, ac.sampleRate);
+    const data = buf.getChannelData(0);
+    let off = 0; for (const c of chunks) { data.set(c, off); off += c.length; }
+    rec = []; ring = []; ringLen = 0;
+
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = $('pitch').value / 100;   // 0.6 – 2.0
+    const analyser = ac.createAnalyser(); analyser.fftSize = 512;
+    const gain = ac.createGain(); gain.gain.value = 1.15;
+    src.connect(analyser); analyser.connect(gain); gain.connect(ac.destination);
+
+    cat.classList.add('talking');
+    animateMouth(analyser);
+    src.onended = () => {
+      cat.classList.remove('talking');
+      setMouth(0);
+      setTimeout(() => {                    // small gap so Miu doesn't record himself
+        if (listening) { state = 'listen'; statusEl.textContent = 'Miu is listening… say something!'; }
+      }, 350);
+    };
+    src.start();
+  }
+
+  /* ---------- mouth / eyes animation ---------- */
+  const mouthOpen = $('mouthOpen'), tongue = $('tongue'), mouthClosed = $('mouthClosed'), lids = $('lids');
+  function setMouth(v){ // v 0..1
+    mouthOpen.setAttribute('ry', 4 + v*22);
+    tongue.setAttribute('ry', 2 + v*9);
+    tongue.setAttribute('cy', 216 + v*8);
+    const open = v > 0.06;
+    mouthOpen.style.opacity = open ? 1 : 0;
+    tongue.style.opacity = open ? 1 : 0;
+    mouthClosed.style.opacity = open ? 0 : 1;
+  }
+  function animateMouth(analyser){
+    const arr = new Uint8Array(analyser.frequencyBinCount);
+    const loop = () => {
+      if (state !== 'playing') return;
+      analyser.getByteTimeDomainData(arr);
+      let peak = 0; for (let i=0;i<arr.length;i++) peak = Math.max(peak, Math.abs(arr[i]-128));
+      setMouth(Math.min(1, peak/50));
+      requestAnimationFrame(loop);
+    };
+    loop();
+  }
+  function openEyesWide(w){
+    document.querySelectorAll('.pupil').forEach(p=>p.setAttribute('r', w?15:12));
+  }
+  // blink
+  setInterval(()=>{ lids.style.opacity=1; $('eyeL').style.opacity=.15; $('eyeR').style.opacity=.15;
+    setTimeout(()=>{ lids.style.opacity=0; $('eyeL').style.opacity=1; $('eyeR').style.opacity=1; }, 140);
+  }, 3800);
+  // pupils follow pointer
+  addEventListener('pointermove', e=>{
+    const r = cat.getBoundingClientRect();
+    const dx = ((e.clientX - (r.left+r.width/2)) / r.width) * 8;
+    const dy = ((e.clientY - (r.top+r.height*0.3)) / r.height) * 6;
+    document.querySelector('#eyeL .pupil').setAttribute('cx', 162+dx);
+    document.querySelector('#eyeL .pupil').setAttribute('cy', 148+dy);
+    document.querySelector('#eyeR .pupil').setAttribute('cx', 246+dx);
+    document.querySelector('#eyeR .pupil').setAttribute('cy', 148+dy);
+  });
+
+  /* ---------- synth sound effects ---------- */
+  function tone(f1, f2, dur, type='sine', vol=0.25){
+    ensureAC();
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(f1, ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(Math.max(f2,1), ac.currentTime+dur);
+    g.gain.setValueAtTime(vol, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+dur);
+    o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime+dur);
+  }
+  const meow = () => { tone(620, 350, .5, 'sawtooth', .12); tone(930, 500, .5, 'triangle', .1); mouthFlash(.6,.45); };
+  const purr = () => { for(let i=0;i<7;i++) setTimeout(()=>tone(90,80,.09,'sawtooth',.15), i*110); };
+  const giggle = () => { [500,700,600,820].forEach((f,i)=>setTimeout(()=>tone(f,f*1.3,.12,'square',.08), i*120)); mouthFlash(.5,.6); };
+  const ouch = () => { tone(300,140,.3,'square',.14); mouthFlash(.9,.3); };
+  const chomp = () => { tone(180,60,.12,'square',.2); setTimeout(()=>tone(160,50,.12,'square',.2),160); };
+  function mouthFlash(v,sec){ setMouth(v); setTimeout(()=>{ if(state!=='playing') setMouth(0); }, sec*1000); }
+
+  /* ---------- interactions ---------- */
+  micBtn.onclick = () => listening ? stopListening() : startListening();
+  $('pitch').oninput = e => {
+    const v = e.target.value;
+    statusEl.textContent = v>150 ? '🐿️ Squeaky voice!' : v<95 ? '🐻 Deep voice!' : '🙂 Normal-ish voice';
+  };
+  $('fishBtn').onclick = () => { ensureAC(); chomp(); say('ইয়াম! 🐟 Yum!'); mouthFlash(.8,.5); cat.classList.remove('bounce'); void cat.offsetWidth; cat.classList.add('bounce'); };
+  $('petBtn').onclick = () => { ensureAC(); purr(); say('purrrr… 😽'); lids.style.opacity=1; setTimeout(()=>lids.style.opacity=0, 900); };
+
+  cat.addEventListener('pointerdown', e => {
+    const zone = e.target.closest('.hit')?.dataset.zone;
+    if (!zone) return;
+    ensureAC();
+    if (zone === 'head')  { meow(); say('মিউ! 😺'); }
+    if (zone === 'belly') { giggle(); say('Hehehe! 🤭'); cat.classList.remove('bounce'); void cat.offsetWidth; cat.classList.add('bounce'); }
+    if (zone === 'foot')  { ouch(); say('Ouch! 😾'); cat.classList.remove('wob'); void cat.offsetWidth; cat.classList.add('wob'); }
+  });
+})();
+</script>
+</body>
+</html>
