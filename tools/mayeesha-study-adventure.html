@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mayeesha's Study Adventure 🌟</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👧🏻</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#3b1d8f; --bg2:#1e1060;
+    --card:#ffffff; --ink:#2b2350; --muted:#7a739e;
+    --gold:#ffc93c; --green:#22c55e;
+    --r-lg:22px; --r-md:16px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Baloo Da 2','Hind Siliguri','Noto Sans Bengali',system-ui,sans-serif;
+    background:linear-gradient(170deg,var(--bg1),var(--bg2) 70%);
+    min-height:100vh; color:var(--ink);
+  }
+  .sky{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+  .sky span{position:absolute;opacity:.5;animation:tw 3s ease-in-out infinite alternate;}
+  @keyframes tw{from{opacity:.15;transform:scale(.8)}to{opacity:.7;transform:scale(1.1)}}
+  .wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:14px 14px 90px;}
+
+  /* ---------- header ---------- */
+  .hero{
+    background:linear-gradient(135deg,#8b5cf6,#6d28d9);
+    border-radius:var(--r-lg); padding:16px 18px; color:#fff;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .avatar{
+    font-size:44px; background:#fff3; border-radius:50%; width:74px;height:74px;
+    display:flex;align-items:center;justify-content:center; border:3px solid #ffffff66;
+    flex:0 0 auto;
+  }
+  .hero h1{margin:0;font-size:clamp(19px,4.5vw,26px);line-height:1.15;font-weight:800;}
+  .hero .sub{margin:2px 0 0;font-size:13px;opacity:.9;}
+  .hero-left{flex:1;min-width:180px;}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .pill{
+    background:#ffffff22;border:1.5px solid #ffffff55;border-radius:999px;
+    padding:4px 12px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:6px;
+  }
+  .pill.gold{background:#ffc93c;color:#5b3b00;border-color:#ffdc7a;}
+  .rank{font-size:14px;font-weight:800;background:#00000026;border-radius:999px;padding:4px 12px;}
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex;gap:10px;margin:16px 0 12px;}
+  .tab{
+    flex:1;border:none;cursor:pointer;border-radius:var(--r-md);
+    padding:12px 8px;font-family:inherit;font-weight:800;font-size:15px;
+    background:#ffffff1c;color:#d9d2ff;transition:.2s;line-height:1.2;
+  }
+  .tab small{display:block;font-weight:600;font-size:12px;opacity:.85;}
+  .tab.on{background:#fff;color:#4c1d95;box-shadow:0 6px 20px rgba(0,0,0,.3);transform:translateY(-2px);}
+  .termbar{background:#ffffff22;border-radius:999px;height:14px;overflow:hidden;margin-bottom:6px;}
+  .termbar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#facc15,#4ade80);transition:width .5s;}
+  .termtxt{color:#e4defc;font-size:13px;font-weight:700;text-align:center;margin-bottom:14px;}
+
+  /* ---------- level grid ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+  .lvl{
+    background:var(--card);border-radius:var(--r-lg);padding:14px 12px 12px;cursor:pointer;
+    border:none;font-family:inherit;text-align:center;position:relative;
+    box-shadow:0 6px 16px rgba(0,0,0,.28);transition:transform .15s;
+  }
+  .lvl:active{transform:scale(.96);}
+  .lvl .num{
+    position:absolute;top:-8px;left:-6px;background:#4c1d95;color:#fff;font-size:12px;font-weight:800;
+    border-radius:999px;padding:3px 9px;box-shadow:0 3px 8px rgba(0,0,0,.3);
+  }
+  .lvl .done-ribbon{
+    position:absolute;top:-8px;right:-6px;background:var(--green);color:#fff;font-size:12px;font-weight:800;
+    border-radius:999px;padding:3px 8px;box-shadow:0 3px 8px rgba(0,0,0,.3);
+  }
+  .lvl .emo{font-size:38px;line-height:1;}
+  .lvl h3{margin:6px 0 0;font-size:15px;font-weight:800;}
+  .lvl .bn{font-size:12.5px;color:var(--muted);font-weight:600;margin-top:1px;}
+  .stars{font-size:15px;letter-spacing:2px;margin-top:5px;}
+  .stars .off{opacity:.25;filter:grayscale(1);}
+  .bar{background:#ece8fb;border-radius:999px;height:10px;overflow:hidden;margin-top:7px;}
+  .bar i{display:block;height:100%;border-radius:999px;transition:width .4s;}
+  .lvl .cnt{font-size:12px;color:var(--muted);font-weight:700;margin-top:4px;}
+
+  /* ---------- action buttons ---------- */
+  .actions{display:flex;gap:10px;margin-top:18px;}
+  .btn{
+    border:none;cursor:pointer;font-family:inherit;font-weight:800;font-size:15px;
+    border-radius:var(--r-md);padding:12px 16px;transition:.15s;
+  }
+  .btn:active{transform:scale(.96);}
+  .btn.map{flex:1;background:var(--gold);color:#5b3b00;box-shadow:0 6px 16px rgba(0,0,0,.3);}
+  .btn.ghost{background:#ffffff1c;color:#cfc6ff;}
+
+  /* ---------- overlays ---------- */
+  .ovl{
+    position:fixed;inset:0;background:rgba(20,10,50,.72);backdrop-filter:blur(3px);
+    z-index:50;display:none;align-items:flex-end;justify-content:center;
+  }
+  .ovl.show{display:flex;}
+  .sheet{
+    background:#f6f4ff;width:100%;max-width:640px;max-height:92vh;overflow:auto;
+    border-radius:26px 26px 0 0;animation:up .25s ease;
+  }
+  @media(min-width:700px){ .ovl{align-items:center;} .sheet{border-radius:26px;max-height:88vh;} }
+  @keyframes up{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
+  .sheet-head{
+    position:sticky;top:0;z-index:2;color:#fff;padding:16px 18px 14px;
+    display:flex;align-items:center;gap:12px;border-radius:0;
+  }
+  .sheet-head .emo{font-size:36px;}
+  .sheet-head h2{margin:0;font-size:19px;font-weight:800;line-height:1.15;}
+  .sheet-head .bn{font-size:13px;opacity:.92;font-weight:600;}
+  .x{
+    margin-left:auto;background:#ffffff2e;border:none;color:#fff;font-size:18px;font-weight:800;
+    width:38px;height:38px;border-radius:50%;cursor:pointer;flex:0 0 auto;font-family:inherit;
+  }
+  .sheet-body{padding:14px 14px 26px;}
+  .gtitle{
+    font-size:14px;font-weight:800;color:#6d28d9;margin:16px 4px 8px;
+    display:flex;align-items:center;gap:6px;
+  }
+  .gtitle:first-child{margin-top:2px;}
+  .item{
+    display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+    background:#fff;border:2px solid #e8e3fa;border-radius:var(--r-md);
+    padding:11px 12px;margin-bottom:8px;cursor:pointer;font-family:inherit;transition:.15s;
+  }
+  .item:active{transform:scale(.98);}
+  .chk{
+    width:32px;height:32px;border-radius:50%;flex:0 0 auto;border:2.5px dashed #c9bff2;
+    display:flex;align-items:center;justify-content:center;font-size:17px;color:transparent;transition:.2s;
+  }
+  .item span.txt{font-size:15px;font-weight:700;color:var(--ink);line-height:1.3;flex:1;}
+  .item .pts{font-size:12.5px;font-weight:800;color:#b3abd6;flex:0 0 auto;}
+  .item.on{background:#eafcf0;border-color:#86efac;}
+  .item.on .chk{border:none;background:var(--green);color:#fff;}
+  .item.on span.txt{color:#15803d;text-decoration:line-through;text-decoration-thickness:2px;}
+  .item.on .pts{color:var(--green);}
+
+  /* ---------- overview ---------- */
+  .ov-hero{display:flex;flex-direction:column;align-items:center;padding:6px 0 4px;}
+  .ring{position:relative;width:150px;height:150px;}
+  .ring svg{transform:rotate(-90deg);}
+  .ring .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .ring .mid b{font-size:30px;color:#4c1d95;line-height:1;}
+  .ring .mid small{font-size:12px;color:var(--muted);font-weight:700;}
+  .ov-sec{background:#fff;border-radius:var(--r-lg);padding:13px 14px;margin-top:12px;box-shadow:0 4px 12px rgba(76,29,149,.08);}
+  .ov-sec h3{margin:0 0 4px;font-size:16px;font-weight:800;color:#4c1d95;display:flex;justify-content:space-between;align-items:center;}
+  .ov-sec h3 b{font-size:14px;color:#6d28d9;}
+  .ov-row{display:flex;align-items:center;gap:9px;padding:6px 0;}
+  .ov-row .oe{font-size:20px;width:26px;text-align:center;flex:0 0 auto;}
+  .ov-row .on{font-size:13.5px;font-weight:700;width:104px;flex:0 0 auto;line-height:1.15;}
+  .ov-row .on small{display:block;color:var(--muted);font-weight:600;font-size:11px;}
+  .ov-row .ob{flex:1;background:#ece8fb;border-radius:999px;height:11px;overflow:hidden;}
+  .ov-row .ob i{display:block;height:100%;border-radius:999px;transition:width .4s;}
+  .ov-row .op{width:44px;text-align:right;font-size:13px;font-weight:800;flex:0 0 auto;}
+
+  /* ---------- celebration ---------- */
+  .party{
+    position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;
+    background:rgba(20,10,50,.6);
+  }
+  .party.show{display:flex;}
+  .party-card{
+    background:#fff;border-radius:26px;padding:28px 26px;text-align:center;max-width:320px;margin:16px;
+    animation:pop .35s cubic-bezier(.2,1.6,.5,1);box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  @keyframes pop{from{transform:scale(.5);opacity:0}to{transform:none;opacity:1}}
+  .party-card .big{font-size:56px;}
+  .party-card h2{margin:8px 0 4px;font-size:22px;color:#4c1d95;}
+  .party-card p{margin:0 0 16px;color:var(--muted);font-weight:700;}
+  .party-card .bonus{color:#d97706;font-size:18px;font-weight:800;margin-bottom:14px;}
+  .btn.primary{background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;width:100%;}
+  .btn.danger{background:#ef4444;color:#fff;width:100%;}
+  .btn.plain{background:#ece8fb;color:#4c1d95;width:100%;margin-top:8px;}
+
+  /* +10 pop */
+  .fly{
+    position:fixed;z-index:80;font-weight:800;font-size:20px;color:var(--gold);
+    text-shadow:0 2px 4px rgba(0,0,0,.4);pointer-events:none;animation:fly 1s ease-out forwards;
+  }
+  @keyframes fly{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(-70px) scale(1.4)}}
+
+  /* confetti */
+  .cf{position:fixed;z-index:75;top:-20px;pointer-events:none;animation:fall linear forwards;}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.8;}}
+
+  .notice{
+    background:#fff7d6;border:1.5px solid #f4d35e;color:#7a5c00;border-radius:var(--r-md);
+    padding:9px 13px;font-size:13px;font-weight:700;margin-top:12px;display:none;
+  }
+  .notice.show{display:block;}
+  footer{color:#b9aef0;text-align:center;font-size:12.5px;font-weight:600;margin-top:26px;}
+</style>
+</head>
+<body>
+<div class="sky" id="sky"></div>
+<div class="wrap">
+  <div class="hero">
+    <div class="avatar">👧🏻</div>
+    <div class="hero-left">
+      <h1>Mayeesha's Study Adventure</h1>
+      <p class="sub">Class 3 • Government Mohammadpur Model School &amp; College</p>
+      <div class="badges">
+        <span class="pill gold">⭐ <b id="pts">0</b> points</span>
+        <span class="pill">🏆 <b id="lvls">0</b>/16 levels</span>
+        <span class="rank" id="rank">🌱 New Star</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="notice" id="notice">⚠️ Progress will not be saved here. Download this file and open it in Chrome — then everything saves automatically!</div>
+
+  <div class="tabs">
+    <button class="tab" id="tab-hy" onclick="setTerm('hy')">🌞 Half Yearly<small>অর্ধ-বার্ষিক পরীক্ষা</small></button>
+    <button class="tab" id="tab-an" onclick="setTerm('an')">🎓 Annual<small>বার্ষিক পরীক্ষা</small></button>
+  </div>
+
+  <div class="termbar"><i id="termfill" style="width:0%"></i></div>
+  <div class="termtxt" id="termtxt"></div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="actions">
+    <button class="btn map" onclick="openOverview()">🗺️ Bird's Eye View</button>
+    <button class="btn ghost" onclick="askReset()">↺ Reset</button>
+  </div>
+  <footer>Made with ❤️ for Mayeesha — finish a lesson, tap it, and collect your stars!</footer>
+</div>
+
+<!-- level sheet -->
+<div class="ovl" id="lvl-ovl">
+  <div class="sheet">
+    <div class="sheet-head" id="lvl-head">
+      <div class="emo" id="lvl-emo"></div>
+      <div><h2 id="lvl-name"></h2><div class="bn" id="lvl-bn"></div></div>
+      <button class="x" onclick="closeLevel()">✕</button>
+    </div>
+    <div class="sheet-body" id="lvl-body"></div>
+  </div>
+</div>
+
+<!-- overview sheet -->
+<div class="ovl" id="ov-ovl">
+  <div class="sheet">
+    <div class="sheet-head" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">
+      <div class="emo">🗺️</div>
+      <div><h2>Bird's Eye View</h2><div class="bn">পুরো সিলেবাস এক নজরে</div></div>
+      <button class="x" onclick="closeOverview()">✕</button>
+    </div>
+    <div class="sheet-body" id="ov-body"></div>
+  </div>
+</div>
+
+<!-- celebration -->
+<div class="party" id="party">
+  <div class="party-card">
+    <div class="big" id="party-emo">🎉</div>
+    <h2 id="party-title">Level Complete!</h2>
+    <p id="party-sub"></p>
+    <div class="bonus" id="party-bonus">+50 bonus points!</div>
+    <button class="btn primary" onclick="closeParty()">Yay! 🎈</button>
+  </div>
+</div>
+
+<!-- reset confirm -->
+<div class="party" id="reset-modal">
+  <div class="party-card">
+    <div class="big">🧹</div>
+    <h2>Start over?</h2>
+    <p>All ticks, points and stars will be cleared.</p>
+    <button class="btn danger" onclick="doReset()">Yes, reset everything</button>
+    <button class="btn plain" onclick="hideReset()">No, keep my progress</button>
+  </div>
+</div>
+
+<script>
+/* ================= DATA (from the official Class 3 syllabus) ================= */
+const ITEM_PTS = 10, LEVEL_BONUS = 50;
+
+const SUBJECTS = [
+  {id:'bangla', name:'Bangla',    bn:'বাংলা',                 emo:'📖', color:'#f43f5e'},
+  {id:'eng',    name:'English',   bn:'ইংরেজি',                emo:'🔤', color:'#3b82f6'},
+  {id:'math',   name:'Math',      bn:'প্রাথমিক গণিত',          emo:'🔢', color:'#f59e0b'},
+  {id:'sci',    name:'Science',   bn:'প্রাথমিক বিজ্ঞান',        emo:'🔬', color:'#10b981'},
+  {id:'bgs',    name:'BGS',       bn:'বাংলাদেশ ও বিশ্বপরিচয়',  emo:'🌏', color:'#06b6d4'},
+  {id:'islam',  name:'Islam Shikkha', bn:'ইসলাম শিক্ষা',       emo:'🕌', color:'#8b5cf6'},
+  {id:'art',    name:'Drawing',   bn:'চারুকলা',               emo:'🎨', color:'#ec4899'},
+  {id:'gk',     name:'GK',        bn:'সাধারণ জ্ঞান',           emo:'💡', color:'#84cc16'},
+];
+
+const DATA = {
+hy:{ label:'Half Yearly', bn:'অর্ধ-বার্ষিক পরীক্ষা', emo:'🌞',
+ subjects:{
+  bangla:[
+   {g:'গদ্য', items:['আমাদের কথা','আমাদের পরিবার ও আমাদের প্রতিবেশী','ময়লার বাকসো','আবার পড়ি কারচিহ্ন','আবার পড়ি ফলাচিহ্ন','দেখে বুঝে কাজ করি','ঘাসফড়িং আর পিঁপড়ার গল্প','ব্যাঙের সাজা','বাক্য পড়ি ও লিখি','আনন্দের দিন','বালুচরে একদিন']},
+   {g:'পদ্য', items:['আমি হব','আমাদের গ্রাম','হাসি']},
+   {g:'আবেদনপত্র / চিঠি', items:['বনভোজনের অভিজ্ঞতা জানিয়ে বন্ধুর কাছে চিঠি','বিনা বেতনে অধ্যয়নের জন্য প্রধান শিক্ষকের নিকট আবেদনপত্র']},
+   {g:'ফরমপূরণ', items:['বার্ষিক ক্রীড়া ও সাংস্কৃতিক প্রতিযোগিতায় অংশগ্রহণের ফরমপূরণ','বিদ্যালয়ে ভর্তির জন্য ফরমপূরণ']},
+   {g:'রচনা', items:['আমাদের বিদ্যালয়','আমাদের গ্রাম','আমার মা']},
+  ],
+  eng:[
+   {g:'English for Today — Units 1–3', items:['Unit 1','Unit 2','Unit 3']},
+   {g:'Grammar & Writing', items:['Writing numbers in words (1–100)','Capital letters & punctuation','Rearranging words into sentences','Right form of verbs','Opposite numbers (CT-1)','Opposite genders (CT-1)']},
+  ],
+  math:[
+   {g:'অধ্যায়', items:['১ম অধ্যায়: সংখ্যা','২য় অধ্যায়: যোগ','৩য় অধ্যায়: বিয়োগ','৪র্থ অধ্যায়: যোগ ও বিয়োগের সম্পর্ক','৫ম অধ্যায়: গুণ','৬ষ্ঠ অধ্যায়: ভাগ','৭ম অধ্যায়: গুণ ও ভাগের সম্পর্ক','১২শ অধ্যায়: জ্যামিতি']},
+  ],
+  sci:[
+   {g:'অধ্যায়', items:['১ম অধ্যায়: উদ্ভিদ পরিচিতি','২য় অধ্যায়: প্রাণী পরিচিতি','৩য় অধ্যায়: সু-স্বাস্থ্যের জন্য খাদ্য','৪র্থ অধ্যায়: পদার্থ','৫ম অধ্যায়: শক্তি']},
+  ],
+  bgs:[
+   {g:'অধ্যায়', items:['১ম অধ্যায়: আমাদের পরিবেশ','২য় অধ্যায়: আমরা সবাই মানুষ','৩য় অধ্যায়: আমাদের ইতিহাস','৪র্থ অধ্যায়: আমাদের সংস্কৃতি','৫ম অধ্যায়: মহাদেশ ও মহাসাগর','৬ষ্ঠ অধ্যায়: পরিবার ও বিদ্যালয়ে শিশুর ভূমিকা']},
+  ],
+  islam:[
+   {g:'অধ্যায়', items:['১ম অধ্যায়: স্রষ্টা ও সৃষ্টি (কুরআন একটি পরিপূর্ণ জীবন বিধান পর্যন্ত)','২য় অধ্যায়: নবি-রাসূল ও মহানবি (সঃ) — হযরত আবু বকর (রাঃ)-এর জীবনাদর্শ','সূরা: মহান আল্লাহর অস্তিত্ব থেকে আন-নাস পর্যন্ত (সিটি)']},
+  ],
+  art:[
+   {g:'ছবি আঁকা', items:['জোড়া আম','শাপলাফুল','শালগম ও গাজর','পেঁপে ও মিষ্টি কুমড়া','চেয়ার','শহীদ মিনার','নদী ও নৌকার দৃশ্য','সূর্যমুখী ফুল','আঙ্গুর ফল']},
+  ],
+  gk:[
+   {g:'আমার বিশ্ব আমার হাতে', items:['৭ থেকে ৩৪ পাতা পর্যন্ত পড়া']},
+  ],
+ }},
+an:{ label:'Annual', bn:'বার্ষিক পরীক্ষা', emo:'🎓',
+ subjects:{
+  bangla:[
+   {g:'গদ্য', items:['নদীর দেশ','হার জিতের গল্প','আমাদের উৎসব','রাষ্ট্রভাষা বাংলা চাই','ঢাকাই মসলিন','হযরত আবু বকর (রাঃ)','মানব জয়ের গল্প','রবীন্দ্রনাথ ঠাকুরের ছেলেবেলা','মুক্তিযুদ্ধে রাজারবাগ','নিজের মত লিখি','প্রতিযোগিতায় নাম লিখি']},
+   {g:'পদ্য', items:['আজিকার শিশু','আমার পণ','তালগাছ','আদর্শ ছেলে']},
+   {g:'আবেদনপত্র / চিঠি', items:['বার্ষিক পরীক্ষার ফলাফল জানিয়ে পিতার কাছে চিঠি','অনুপস্থিতির জন্য ছুটির প্রার্থনা করে প্রধান শিক্ষকের নিকট আবেদনপত্র']},
+   {g:'ফরমপূরণ', items:['সাংস্কৃতিক প্রতিযোগিতায় অংশগ্রহণের জন্য ফরমপূরণ','বিদ্যালয়ের পাঠাগার থেকে বই নেওয়ার জন্য ফরমপূরণ']},
+   {g:'রচনা', items:['নৌকা ভ্রমণ','একুশে ফেব্রুয়ারি','আমার প্রিয় শিক্ষক']},
+  ],
+  eng:[
+   {g:'English for Today — Units 4–8', items:['Unit 4','Unit 5','Unit 6','Unit 7','Unit 8']},
+   {g:'Grammar & Writing', items:['Tense (CT-2)','Making sentences by meaning (CT-2)','WH-questions (CT-2)']},
+  ],
+  math:[
+   {g:'অধ্যায়', items:['৮ম অধ্যায়: যোগ, বিয়োগ, গুণ ও ভাগ সংক্রান্ত সমস্যা','৯ম অধ্যায়: ভগ্নাংশ','১০ম অধ্যায়: বাংলাদেশী মুদ্রা','১১শ অধ্যায়: পরিমাপ','১২শ অধ্যায়: জ্যামিতি','১৩শ অধ্যায়: উপাত্ত সংগ্রহ ও বিন্যস্তকরণ']},
+  ],
+  sci:[
+   {g:'অধ্যায়', items:['৭ম অধ্যায়: পানি','৮ম অধ্যায়: মাটি','৯ম অধ্যায়: জীবনের জন্য সূর্য','১০ম অধ্যায়: প্রযুক্তির সঙ্গে পরিচয়','১১তম অধ্যায়: তথ্য ও যোগাযোগ']},
+  ],
+  bgs:[
+   {g:'অধ্যায়', items:['৭ম অধ্যায়: শিশু অধিকার ও নিরাপত্তা','৮ম অধ্যায়: নৈতিক ও মানবিক গুণ','৯ম অধ্যায়: আমাদের দেশ','১০ম অধ্যায়: বিভিন্ন পেশা','১১শ অধ্যায়: টাকার ব্যবহার','১২শ অধ্যায়: জরুরি পরিস্থিতি মোকাবিলা']},
+  ],
+  islam:[
+   {g:'অধ্যায়', items:['৩য় অধ্যায়: নৈতিক ও মানবিক গুণাবলী অর্জন (দেশপ্রেম পর্যন্ত)','৪র্থ অধ্যায়: ধর্মীয় সম্প্রীতি','৫ম অধ্যায়: জীবজগৎ ও প্রকৃতির প্রতি ভালোবাসা']},
+  ],
+  art:[
+   {g:'ছবি আঁকা', items:['তরমুজ','জবাফুল','স্মৃতিসৌধ','ব্রোকলি ও বিটরুট','টেবিল','পালতোলা নৌকা','গ্রামের দৃশ্য','চিংড়ী মাছ','গোলাপফুল']},
+  ],
+  gk:[
+   {g:'আমার বিশ্ব আমার হাতে', items:['৩৫ থেকে ৬৪ পাতা পর্যন্ত পড়া']},
+  ],
+ }},
+};
+
+/* ================= storage (safe) ================= */
+const KEY='mayeesha_class3_tracker_v1';
+const store=(()=>{try{const t='__t';localStorage.setItem(t,'1');localStorage.removeItem(t);return localStorage;}catch(e){return null;}})();
+let state={done:{},term:'hy'};
+if(store){try{const s=JSON.parse(store.getItem(KEY)||'{}');if(s&&s.done)state=Object.assign(state,s);}catch(e){}}
+else{document.addEventListener('DOMContentLoaded',()=>document.getElementById('notice').classList.add('show'));}
+function save(){if(store){try{store.setItem(KEY,JSON.stringify(state));}catch(e){}}}
+
+/* ================= helpers ================= */
+const $=id=>document.getElementById(id);
+function items(term,sub){return DATA[term].subjects[sub.id]||[];}
+function flatIds(term,sub){const out=[];items(term,sub).forEach((g,gi)=>g.items.forEach((_,ii)=>out.push(term+'.'+sub.id+'.'+gi+'.'+ii)));return out;}
+function subStats(term,sub){const ids=flatIds(term,sub);const d=ids.filter(i=>state.done[i]).length;return{d,t:ids.length,pct:ids.length?Math.round(d/ids.length*100):0};}
+function termStats(term){let d=0,t=0;SUBJECTS.forEach(s=>{const st=subStats(term,s);d+=st.d;t+=st.t;});return{d,t,pct:t?Math.round(d/t*100):0};}
+function totals(){
+  let d=0,t=0,lv=0;
+  ['hy','an'].forEach(tm=>SUBJECTS.forEach(s=>{const st=subStats(tm,s);d+=st.d;t+=st.t;if(st.t&&st.d===st.t)lv++;}));
+  return{d,t,lv,pts:d*ITEM_PTS+lv*LEVEL_BONUS,pct:t?Math.round(d/t*100):0};
+}
+function starStr(pct){
+  const n=pct>=100?3:pct>=66?2:pct>=33?1:0;
+  let s='';for(let i=0;i<3;i++)s+='<span class="'+(i<n?'':'off')+'">⭐</span>';return s;
+}
+function rankOf(pct){
+  if(pct>=100)return'🏆 Grand Champion';
+  if(pct>=90)return'🚀 Almost There!';
+  if(pct>=60)return'🏅 Super Scholar';
+  if(pct>=30)return'🦸 Study Hero';
+  if(pct>=10)return'🌟 Rising Star';
+  return'🌱 New Star';
+}
+
+/* ================= render ================= */
+function renderHeader(){
+  const tot=totals();
+  $('pts').textContent=tot.pts;
+  $('lvls').textContent=tot.lv;
+  $('rank').textContent=rankOf(tot.pct);
+}
+function renderTabs(){
+  $('tab-hy').classList.toggle('on',state.term==='hy');
+  $('tab-an').classList.toggle('on',state.term==='an');
+  const ts=termStats(state.term);
+  $('termfill').style.width=ts.pct+'%';
+  $('termtxt').textContent=DATA[state.term].emo+' '+DATA[state.term].bn+' — '+ts.d+'/'+ts.t+' lessons done ('+ts.pct+'%)';
+}
+function renderGrid(){
+  const g=$('grid');g.innerHTML='';
+  SUBJECTS.forEach((s,i)=>{
+    const st=subStats(state.term,s);
+    const b=document.createElement('button');
+    b.className='lvl';
+    b.innerHTML=
+      '<span class="num">Level '+(i+1)+'</span>'+
+      (st.pct===100?'<span class="done-ribbon">✓ 100%</span>':'')+
+      '<div class="emo">'+s.emo+'</div>'+
+      '<h3>'+s.name+'</h3><div class="bn">'+s.bn+'</div>'+
+      '<div class="stars">'+starStr(st.pct)+'</div>'+
+      '<div class="bar"><i style="width:'+st.pct+'%;background:'+s.color+'"></i></div>'+
+      '<div class="cnt">'+st.d+'/'+st.t+' done</div>';
+    b.onclick=()=>openLevel(s.id);
+    g.appendChild(b);
+  });
+}
+function renderAll(){renderHeader();renderTabs();renderGrid();}
+
+/* ================= level sheet ================= */
+let curSub=null;
+function openLevel(subId){
+  curSub=SUBJECTS.find(s=>s.id===subId);
+  $('lvl-head').style.background='linear-gradient(135deg,'+curSub.color+',#4c1d95)';
+  $('lvl-emo').textContent=curSub.emo;
+  $('lvl-name').textContent='Level '+(SUBJECTS.indexOf(curSub)+1)+': '+curSub.name+' — '+DATA[state.term].label;
+  $('lvl-bn').textContent=curSub.bn+' • '+DATA[state.term].bn;
+  renderLevelBody();
+  $('lvl-ovl').classList.add('show');
+}
+function renderLevelBody(){
+  const body=$('lvl-body');body.innerHTML='';
+  items(state.term,curSub).forEach((grp,gi)=>{
+    const h=document.createElement('div');h.className='gtitle';h.textContent='📚 '+grp.g;body.appendChild(h);
+    grp.items.forEach((txt,ii)=>{
+      const id=state.term+'.'+curSub.id+'.'+gi+'.'+ii;
+      const on=!!state.done[id];
+      const el=document.createElement('button');
+      el.className='item'+(on?' on':'');
+      el.innerHTML='<span class="chk">'+(on?'✓':'')+'</span><span class="txt">'+txt+'</span><span class="pts">'+(on?'+10 ⭐':'10 pts')+'</span>';
+      el.onclick=(ev)=>toggle(id,ev);
+      body.appendChild(el);
+    });
+  });
+}
+function closeLevel(){$('lvl-ovl').classList.remove('show');curSub=null;}
+
+function toggle(id,ev){
+  const wasComplete=curSub?subStats(state.term,curSub).pct===100:false;
+  if(state.done[id]){delete state.done[id];}
+  else{
+    state.done[id]=1;
+    flyPoints(ev);
+  }
+  save();
+  renderLevelBody();renderAll();
+  if(curSub){
+    const st=subStats(state.term,curSub);
+    if(!wasComplete&&st.pct===100){celebrate(curSub);}
+  }
+}
+
+/* ================= effects ================= */
+function flyPoints(ev){
+  const f=document.createElement('div');f.className='fly';f.textContent='+'+ITEM_PTS+' ⭐';
+  const x=(ev&&ev.clientX)||window.innerWidth/2, y=(ev&&ev.clientY)||window.innerHeight/2;
+  f.style.left=(x-20)+'px';f.style.top=(y-30)+'px';
+  document.body.appendChild(f);setTimeout(()=>f.remove(),1000);
+}
+const CF_COLORS=['#f43f5e','#f59e0b','#22c55e','#3b82f6','#8b5cf6','#ec4899','#ffc93c'];
+function confetti(n){
+  for(let i=0;i<n;i++){
+    const c=document.createElement('div');c.className='cf';
+    const sz=6+(i*7)%9;
+    c.style.left=((i*37)%100)+'vw';
+    c.style.width=sz+'px';c.style.height=(sz*1.4)+'px';
+    c.style.background=CF_COLORS[i%CF_COLORS.length];
+    c.style.borderRadius=(i%3===0)?'50%':'3px';
+    c.style.animationDuration=(2.2+((i*13)%10)/7)+'s';
+    c.style.animationDelay=((i*29)%80)/100+'s';
+    document.body.appendChild(c);setTimeout(()=>c.remove(),4200);
+  }
+}
+function celebrate(sub){
+  const tot=totals();
+  $('party-emo').textContent=sub.emo;
+  $('party-title').textContent='Level Complete!';
+  $('party-sub').textContent=sub.name+' ('+DATA[state.term].label+') — all done. You are amazing, Mayeesha!';
+  $('party-bonus').textContent='+'+LEVEL_BONUS+' bonus points! 🎁';
+  $('party').classList.add('show');
+  confetti(80);
+  if(tot.pct===100){
+    setTimeout(()=>{ $('party-emo').textContent='🏆';
+      $('party-title').textContent='GRAND CHAMPION!';
+      $('party-sub').textContent='The WHOLE Class 3 syllabus is complete! 🎉🎉🎉';
+      $('party-bonus').textContent='Total: '+tot.pts+' points!';
+      confetti(120);},600);
+  }
+}
+function closeParty(){$('party').classList.remove('show');}
+
+/* ================= overview ================= */
+function ovTerm(term){
+  const ts=termStats(term);
+  let rows='';
+  SUBJECTS.forEach(s=>{
+    const st=subStats(term,s);
+    rows+='<div class="ov-row"><span class="oe">'+s.emo+'</span>'+
+      '<span class="on">'+s.name+'<small>'+s.bn+'</small></span>'+
+      '<span class="ob"><i style="width:'+st.pct+'%;background:'+s.color+'"></i></span>'+
+      '<span class="op" style="color:'+(st.pct===100?'#16a34a':'#4c1d95')+'">'+st.pct+'%</span></div>';
+  });
+  return '<div class="ov-sec"><h3>'+DATA[term].emo+' '+DATA[term].label+' <b>'+ts.d+'/'+ts.t+' • '+ts.pct+'%</b></h3>'+rows+'</div>';
+}
+function openOverview(){
+  const tot=totals();
+  const C=2*Math.PI*62;
+  $('ov-body').innerHTML=
+    '<div class="ov-hero"><div class="ring">'+
+    '<svg width="150" height="150"><circle cx="75" cy="75" r="62" fill="none" stroke="#ece8fb" stroke-width="14"/>'+
+    '<circle cx="75" cy="75" r="62" fill="none" stroke="url(#gr)" stroke-width="14" stroke-linecap="round" stroke-dasharray="'+C+'" stroke-dashoffset="'+(C*(1-tot.pct/100))+'"/>'+
+    '<defs><linearGradient id="gr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#facc15"/><stop offset="1" stop-color="#22c55e"/></linearGradient></defs></svg>'+
+    '<div class="mid"><b>'+tot.pct+'%</b><small>whole syllabus</small></div></div>'+
+    '<div style="font-weight:800;color:#4c1d95;margin-top:8px">⭐ '+tot.pts+' points • 🏆 '+tot.lv+'/16 levels • '+rankOf(tot.pct)+'</div></div>'+
+    ovTerm('hy')+ovTerm('an');
+  $('ov-ovl').classList.add('show');
+}
+function closeOverview(){$('ov-ovl').classList.remove('show');}
+
+/* ================= term & reset ================= */
+function setTerm(t){state.term=t;save();renderAll();}
+function askReset(){$('reset-modal').classList.add('show');}
+function hideReset(){$('reset-modal').classList.remove('show');}
+function doReset(){state.done={};save();hideReset();renderAll();}
+
+/* close sheets by tapping backdrop */
+['lvl-ovl','ov-ovl'].forEach(id=>{$(id).addEventListener('click',e=>{if(e.target.id===id)$(id).classList.remove('show');});});
+
+/* twinkling sky */
+(function(){
+  const sky=$('sky');const emo=['✦','✧','⋆','✦','·'];
+  for(let i=0;i<26;i++){
+    const s=document.createElement('span');
+    s.textContent=emo[i%emo.length];
+    s.style.left=((i*53)%100)+'vw';s.style.top=((i*37)%100)+'vh';
+    s.style.color='#cabfff';s.style.fontSize=(8+(i*11)%14)+'px';
+    s.style.animationDelay=((i*17)%30)/10+'s';
+    sky.appendChild(s);
+  }
+})();
+
+renderAll();
+</script>
+</body>
+</html>
